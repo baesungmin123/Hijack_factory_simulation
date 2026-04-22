@@ -5,9 +5,13 @@ import { mountSidebar } from "./components/Sidebar.js";
 import { initStorageApp } from "./pages/storage/storage_main.js";
 import { initStorageInsideApp } from "./pages/storage_inside/storage_inside_main.js";
 import { initPartsFactory1App } from "./pages/parts_factory1/factory1_main.js";
+import { initPartsFactory1InsideApp } from "./pages/parts_factory1_inside/parts1_inside_main.js";
 import { initPartsFactory1App as initJoinFactory1App } from "./pages/join_factory1/join_factory1_main.js";
 import { initPartsFactory1App as initJoinFactory2App } from "./pages/join_factory2/join_factory2_main.js";
 import { initPartsFactory1App as initPartsFactory2App } from "./pages/parts_factory2/factory2_main.js";
+import { initPartsFactory2InsideApp } from "./pages/parts_factory2_inside/parts2_inside_main.js";
+import { initJoinFactory1InsideApp } from "./pages/join_factory1_inside/join1_inside_main.js";
+import { initJoinFactory2InsideApp } from "./pages/join_factory2_inside/join2_inside_main.js";
 import { initTransferApp as initTransfer1App } from "./pages/transfer1/transfer_main.js";
 import { initTransferApp as initTransfer2App } from "./pages/transfer2/transfer_main.js";
 
@@ -113,9 +117,26 @@ function switchToPartsFactory1Page() {
     clearSceneObjects(scene);
     scene.background = new THREE.Color(0xc7d9ee);
     addSunStyleLighting(scene);
-    currentApp = initPartsFactory1App({ scene, renderer, canvas });
+    currentApp = initPartsFactory1App({
+      scene,
+      renderer,
+      canvas,
+      onEnterPartsFactory1Inside: switchToPartsFactory1InsidePage,
+    });
     currentPage = "parts-factory1";
     setSidebarCurrentScreen("부품공장(머리 + 몸통)");
+    revealFromBlack();
+  });
+}
+
+function switchToPartsFactory1InsidePage() {
+  if (currentPage === "parts-factory1-inside") return;
+  fadeToBlack().then(() => {
+    currentApp?.dispose?.();
+    clearSceneObjects(scene);
+    currentApp = initPartsFactory1InsideApp({ scene, renderer, canvas });
+    currentPage = "parts-factory1-inside";
+    setSidebarCurrentScreen("부품공장1 내부");
     revealFromBlack();
   });
 }
@@ -127,9 +148,26 @@ function switchToPartsFactory2Page() {
     clearSceneObjects(scene);
     scene.background = new THREE.Color(0xc7d9ee);
     addSunStyleLighting(scene);
-    currentApp = initPartsFactory2App({ scene, renderer, canvas });
+    currentApp = initPartsFactory2App({
+      scene,
+      renderer,
+      canvas,
+      onEnterInside: switchToPartsFactory2InsidePage,
+    });
     currentPage = "parts-factory2";
     setSidebarCurrentScreen("부품공장(팔 + 다리)");
+    revealFromBlack();
+  });
+}
+
+function switchToPartsFactory2InsidePage() {
+  if (currentPage === "parts-factory2-inside") return;
+  fadeToBlack().then(() => {
+    currentApp?.dispose?.();
+    clearSceneObjects(scene);
+    currentApp = initPartsFactory2InsideApp({ scene, renderer, canvas });
+    currentPage = "parts-factory2-inside";
+    setSidebarCurrentScreen("부품공장2 내부");
     revealFromBlack();
   });
 }
@@ -141,9 +179,26 @@ function switchToJoinFactory1Page() {
     clearSceneObjects(scene);
     scene.background = new THREE.Color(0xc7d9ee);
     addSunStyleLighting(scene);
-    currentApp = initJoinFactory1App({ scene, renderer, canvas });
+    currentApp = initJoinFactory1App({
+      scene,
+      renderer,
+      canvas,
+      onEnterInside: switchToJoinFactory1InsidePage,
+    });
     currentPage = "join-factory1";
     setSidebarCurrentScreen("조립공장(몸통+다리+팔)");
+    revealFromBlack();
+  });
+}
+
+function switchToJoinFactory1InsidePage() {
+  if (currentPage === "join-factory1-inside") return;
+  fadeToBlack().then(() => {
+    currentApp?.dispose?.();
+    clearSceneObjects(scene);
+    currentApp = initJoinFactory1InsideApp({ scene, renderer, canvas });
+    currentPage = "join-factory1-inside";
+    setSidebarCurrentScreen("조립공장1 내부");
     revealFromBlack();
   });
 }
@@ -155,9 +210,26 @@ function switchToJoinFactory2Page() {
     clearSceneObjects(scene);
     scene.background = new THREE.Color(0xc7d9ee);
     addSunStyleLighting(scene);
-    currentApp = initJoinFactory2App({ scene, renderer, canvas });
+    currentApp = initJoinFactory2App({
+      scene,
+      renderer,
+      canvas,
+      onEnterInside: switchToJoinFactory2InsidePage,
+    });
     currentPage = "join-factory2";
     setSidebarCurrentScreen("조립공장(최종)");
+    revealFromBlack();
+  });
+}
+
+function switchToJoinFactory2InsidePage() {
+  if (currentPage === "join-factory2-inside") return;
+  fadeToBlack().then(() => {
+    currentApp?.dispose?.();
+    clearSceneObjects(scene);
+    currentApp = initJoinFactory2InsideApp({ scene, renderer, canvas });
+    currentPage = "join-factory2-inside";
+    setSidebarCurrentScreen("조립공장2 내부");
     revealFromBlack();
   });
 }
