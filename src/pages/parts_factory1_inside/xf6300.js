@@ -2,17 +2,17 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 const loader = new GLTFLoader();
-const URL = "/assets/blend/_cutting_machine.glb";
+const URL = "/assets/blend/xf6300.glb";
 
-export async function addCuttingMachine(scene, options = {}) {
+export async function addXF6300(scene, options = {}) {
   const {
-    position = new THREE.Vector3(-9.47, 0, -17.37),
+    position = new THREE.Vector3(14.22, 0, -2.28),
     rotationY = 0,
   } = options;
 
   const gltf = await loader.loadAsync(URL);
   const root = gltf.scene;
-  root.name = "CuttingMachine";
+  root.name = "XF6300";
   root.rotation.y = rotationY;
   root.updateMatrixWorld(true);
 

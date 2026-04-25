@@ -2,17 +2,17 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 const loader = new GLTFLoader();
-const URL = "/assets/blend/_cutting_machine.glb";
+const URL = "/assets/blend/press.glb";
 
-export async function addCuttingMachine(scene, options = {}) {
+export async function addPress(scene, options = {}) {
   const {
-    position = new THREE.Vector3(-9.47, 0, -17.37),
+    position = new THREE.Vector3(12.06, 0, 33.90),
     rotationY = 0,
   } = options;
 
   const gltf = await loader.loadAsync(URL);
   const root = gltf.scene;
-  root.name = "CuttingMachine";
+  root.name = "Press";
   root.rotation.y = rotationY;
   root.updateMatrixWorld(true);
 
@@ -21,5 +21,10 @@ export async function addCuttingMachine(scene, options = {}) {
   root.position.set(position.x - center.x, -box.min.y + position.y, position.z - center.z);
 
   scene.add(root);
-  return { root, getBounds() { return new THREE.Box3().setFromObject(root); } };
+  return {
+    root,
+    getBounds() {
+      return new THREE.Box3().setFromObject(root);
+    },
+  };
 }
