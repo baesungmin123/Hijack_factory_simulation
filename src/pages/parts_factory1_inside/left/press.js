@@ -21,8 +21,21 @@ export async function addPress(scene, options = {}) {
   root.position.set(position.x - center.x, -box.min.y + position.y, position.z - center.z);
 
   scene.add(root);
+
+  const mixer = new THREE.AnimationMixer(root);
+  const actions = gltf.animations.map(clip => {
+    const action = mixer.clipAction(clip);
+    action.loop = THREE.LoopOnce;
+    action.clampWhenFinished = true;
+    action.play();
+    action.paused = true;
+    return action;
+  });
+
   return {
     root,
+    mixer,
+    actions,
     getBounds() {
       return new THREE.Box3().setFromObject(root);
     },

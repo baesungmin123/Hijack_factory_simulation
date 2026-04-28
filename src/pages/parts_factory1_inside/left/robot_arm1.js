@@ -25,6 +25,8 @@ export async function addRobotArm1(scene, options = {}) {
   const mixer = new THREE.AnimationMixer(root);
   const actions = gltf.animations.map(clip => {
     const action = mixer.clipAction(clip);
+    action.loop = THREE.LoopOnce;
+    action.clampWhenFinished = true;
     action.play();
     action.paused = true;
     return action;

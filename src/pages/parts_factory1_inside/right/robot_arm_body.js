@@ -23,7 +23,14 @@ export async function addRobotArmBody(scene, options = {}) {
   scene.add(root);
 
   const mixer = new THREE.AnimationMixer(root);
-  gltf.animations.forEach(clip => mixer.clipAction(clip).play());
+  const actions = gltf.animations.map(clip => {
+    const action = mixer.clipAction(clip);
+    action.loop = THREE.LoopOnce;
+    action.clampWhenFinished = true;
+    action.play();
+    action.paused = true;
+    return action;
+  });
 
-  return { root, mixer, getBounds() { return new THREE.Box3().setFromObject(root); } };
+  return { root, mixer, actions, getBounds() { return new THREE.Box3().setFromObject(root); } };
 }
