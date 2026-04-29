@@ -1,26 +1,27 @@
 import * as THREE from "three";
 import { createViewModeControls } from "../../components/Controls.js";
+import { addPartsFactory2InsideFloor } from "./floor.js";
+import { initLeftAnimation } from "./left_animation.js";
+import { initRightAnimation } from "./right_animation.js";
 
 /**
- * 부품공장2 내부 화면(임시)
+ * 부품공장2 내부 화면
  * @param {{ scene: THREE.Scene; renderer: THREE.WebGLRenderer; canvas: HTMLCanvasElement }} ctx
  */
 export function initPartsFactory2InsideApp({ scene, renderer, canvas }) {
   scene.background = new THREE.Color(0x121722);
 
-  const ambient = new THREE.AmbientLight(0xffffff, 0.5);
-  const key = new THREE.DirectionalLight(0xfff0d4, 1.1);
+  const ambient = new THREE.AmbientLight(0xffffff, 1.5);
+  const key = new THREE.DirectionalLight(0xfff0d4, 2.5);
   key.position.set(12, 18, 10);
   scene.add(ambient, key);
 
-  const floor = new THREE.Mesh(
-    new THREE.PlaneGeometry(50, 40),
-    new THREE.MeshStandardMaterial({ color: 0x2a313e, roughness: 0.92, metalness: 0.03 })
-  );
-  floor.rotation.x = -Math.PI / 2;
-  scene.add(floor);
+  addPartsFactory2InsideFloor(scene).catch((err) => console.error("바닥 로드 실패:", err));
 
-  const target = new THREE.Vector3(0, 1.2, 0);
+  const leftAnim = initLeftAnimation(scene);
+  const rightAnim = initRightAnimation(scene);
+
+  const target = new THREE.Vector3(0, 0, 30);
   const viewControls = createViewModeControls({
     renderer,
     domElement: canvas,
@@ -33,7 +34,7 @@ export function initPartsFactory2InsideApp({ scene, renderer, canvas }) {
   viewControls.resize(window.innerWidth, window.innerHeight);
 
   const cam = viewControls.getActiveCamera();
-  cam.position.set(15, 12, 16);
+  cam.position.set(0, 80, 80);
   viewControls.setTarget(target);
 
   function onSidebarViewModeChange(event) {
@@ -50,10 +51,16 @@ export function initPartsFactory2InsideApp({ scene, renderer, canvas }) {
   window.addEventListener("resize", onResize);
   window.addEventListener("app:viewmode-change", onSidebarViewModeChange);
 
+  const clock = new THREE.Clock();
   let rafId = 0;
   let disposed = false;
   function animate() {
     if (disposed) return;
+    const delta = clock.getDelta();
+
+    leftAnim.update(delta);
+    rightAnim.update(delta);
+
     viewControls.update();
     renderer.render(scene, viewControls.getActiveCamera());
     rafId = requestAnimationFrame(animate);
