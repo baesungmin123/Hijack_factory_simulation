@@ -18,14 +18,12 @@ export async function addTrucks(scene, floorBox) {
   const minX = floorBox.min.x;
   const maxX = floorBox.max.x;
 
-  // 도로 1: +X 방향
   const truck1 = template.clone(true);
   truck1.scale.setScalar(TRUCK_SCALE);
   truck1.position.set(minX, TRUCK_Y, ROAD1_Z);
   truck1.rotation.y = 0;
   scene.add(truck1);
 
-  // 도로 2: -X 방향 (반대편에서 출발)
   const truck2 = template.clone(true);
   truck2.scale.setScalar(TRUCK_SCALE);
   truck2.position.set(maxX, TRUCK_Y, ROAD2_Z);

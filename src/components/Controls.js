@@ -194,6 +194,19 @@ export function createViewModeControls({
     update,
     resize,
     dispose,
+    applyFactoryPerspectiveFrame(combinedBox) {
+      const VIEW_DIR = new THREE.Vector3(30, 24, 28).normalize();
+      const sphere = new THREE.Sphere();
+      combinedBox.getBoundingSphere(sphere);
+      const center = sphere.center;
+      const r = Math.max(sphere.radius, 0.01);
+      const distance = Math.max(r * 1.78, 40);
+      perspectiveCamera.position.copy(center).addScaledVector(VIEW_DIR, distance);
+      perspectiveCamera.updateProjectionMatrix();
+      target.copy(center);
+      controlsPerspective.target.copy(center);
+      controlsPerspective.update();
+    },
     /** 외부에서 look-at 대상이 바뀔 때 공통 target 갱신용 */
     setTarget(v) {
       target.copy(v);

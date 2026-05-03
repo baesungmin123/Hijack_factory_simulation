@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { createViewModeControls } from "../../components/Controls.js";
 import { addTransferFloor } from "./floor.js";
+import { addTrucks } from "./truck.js";
 
 const TRANSFER_ROUTE_BAR_ID = "transfer-route-bar";
 
@@ -124,8 +125,11 @@ export function initTransferApp({ scene, renderer, canvas }) {
     .then(({ getBounds }) => {
       const floorBox = getBounds();
       addSplitGuides(floorBox);
-
       viewControls.fitToBounds(floorBox);
+      return addTrucks(scene, floorBox);
+    })
+    .then((trucks) => {
+      trucksLayer = trucks;
     })
     .catch((err) => {
       console.error("이송라인 씬 로드 실패:", err);
@@ -145,10 +149,15 @@ export function initTransferApp({ scene, renderer, canvas }) {
   window.addEventListener("resize", onResize);
   window.addEventListener("app:viewmode-change", onSidebarViewModeChange);
 
+  const clock = new THREE.Clock();
+  let trucksLayer = null;
   let rafId = 0;
   let disposed = false;
+
   function animate() {
     if (disposed) return;
+    const delta = clock.getDelta();
+    trucksLayer?.update(delta);
     viewControls.update();
     renderer.render(scene, viewControls.getActiveCamera());
     rafId = requestAnimationFrame(animate);

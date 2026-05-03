@@ -22,9 +22,9 @@ export function mountSidebar() {
   const headerCard = document.createElement("section");
   headerCard.className = "sidebar-panel sidebar-title-panel";
   headerCard.innerHTML = `
-    <div class="sidebar-panel-header">원재료 창고</div>
+    <div class="sidebar-panel-header" id="sidebar-header-screen">원재료 창고</div>
     <div class="sidebar-hero">
-      <img src="/assets/icon/storage.png" alt="storage icon" class="sidebar-hero-img" />
+      <img src="/assets/icon/storage.png" alt="" class="sidebar-hero-img" id="sidebar-hero-img" />
     </div>
   `;
 
@@ -35,7 +35,6 @@ export function mountSidebar() {
   menuHead.className = "sidebar-menu-head";
   menuHead.innerHTML = `
     <span class="menu-title"><img src="/assets/icon/factory.png" alt="" class="menu-title-icon" /><span id="sidebar-current-screen">격납고</span></span>
-    <button type="button" class="sidebar-toggle" aria-label="사이드바 접기">⌄</button>
   `;
 
   const expandedList = document.createElement("div");
@@ -49,19 +48,7 @@ export function mountSidebar() {
     `
   ).join("");
 
-  const collapsedRow = document.createElement("div");
-  collapsedRow.className = "sidebar-list collapsed-row";
-  collapsedRow.innerHTML = MENU_ITEMS.slice(0, 5)
-    .map(
-      (m) => `
-      <button type="button" class="collapsed-item" title="${m.label}" data-menu-key="${m.key}">
-        <img src="${m.icon}" alt="" class="collapsed-icon" />
-      </button>
-    `
-    )
-    .join("");
-
-  menuPanel.append(menuHead, expandedList, collapsedRow);
+  menuPanel.append(menuHead, expandedList);
 
   const modeButtons = document.createElement("section");
   modeButtons.className = "sidebar-mode-buttons";
@@ -72,13 +59,6 @@ export function mountSidebar() {
 
   wrap.append(headerCard, menuPanel, modeButtons);
   document.body.appendChild(wrap);
-
-  const toggleBtn = wrap.querySelector(".sidebar-toggle");
-  toggleBtn?.addEventListener("click", () => {
-    const collapsed = wrap.classList.toggle("is-collapsed");
-    wrap.classList.toggle("is-expanded", !collapsed);
-    toggleBtn.textContent = collapsed ? "⌃" : "⌄";
-  });
 
   wrap.querySelectorAll(".mode-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -100,10 +80,33 @@ export function mountSidebar() {
     });
   });
 
+  const SCREEN_ICONS = {
+    "원재료 창고":           "/assets/icon/storage.png",
+    "창고 내부":             "/assets/icon/storage.png",
+    "부품공장(머리 + 몸통)": "/assets/icon/factory.png",
+    "부품공장1 내부":        "/assets/icon/factory.png",
+    "부품공장(팔 + 다리)":   "/assets/icon/factory.png",
+    "부품공장2 내부":        "/assets/icon/factory.png",
+    "조립공장(몸통+다리+팔)":"/assets/icon/robotarm.png",
+    "조립공장1 내부":        "/assets/icon/robotarm.png",
+    "조립공장(최종)":        "/assets/icon/robotarm.png",
+    "조립공장2 내부":        "/assets/icon/robotarm.png",
+    "이송라인":              "/assets/icon/truck.png",
+    "격납고":                "/assets/icon/hanger.png",
+    "격납고 내부":           "/assets/icon/hanger.png",
+  };
+
   window.addEventListener("app:current-screen", (event) => {
     const name = event?.detail?.name;
     if (!name) return;
     const target = document.getElementById("sidebar-current-screen");
     if (target) target.textContent = name;
+    const header = document.getElementById("sidebar-header-screen");
+    if (header) header.textContent = name;
+    const heroImg = document.getElementById("sidebar-hero-img");
+    if (heroImg && SCREEN_ICONS[name]) {
+      heroImg.src = SCREEN_ICONS[name];
+      heroImg.classList.toggle("is-large", name.startsWith("조립공장"));
+    }
   });
 }

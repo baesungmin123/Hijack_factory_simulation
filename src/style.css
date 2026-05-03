@@ -56,10 +56,21 @@ body {
   border-top: 1px solid rgba(255, 255, 255, 0.18);
 }
 
+@keyframes pixel-float {
+  0%   { transform: translateY(0px); }
+  50%  { transform: translateY(-5px); }
+  100% { transform: translateY(0px); }
+}
+
 .sidebar-hero-img {
   width: 224px;
   max-width: 96%;
-  image-rendering: auto;
+  image-rendering: pixelated;
+  animation: pixel-float 1.6s steps(2, end) infinite;
+}
+
+.sidebar-hero-img.is-large {
+  width: 300px;
 }
 
 .sidebar-menu-head {
@@ -142,8 +153,8 @@ body {
 }
 
 .collapsed-icon {
-  width: 30px;
-  height: 30px;
+  width: 44px;
+  height: 44px;
   object-fit: contain;
 }
 
@@ -170,6 +181,7 @@ body {
 
 .app-sidebar.is-collapsed .collapsed-row {
   display: flex;
+  padding-left: 20px;
 }
 
 /* 이송 화면 하단 경로 버튼 — 작게, 화면 왼쪽 아래 고정 */

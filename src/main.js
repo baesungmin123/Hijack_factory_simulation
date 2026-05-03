@@ -14,6 +14,8 @@ import { initJoinFactory1InsideApp } from "./pages/join_factory1_inside/join1_in
 import { initJoinFactory2InsideApp } from "./pages/join_factory2_inside/join2_inside_main.js";
 import { initTransferApp as initTransfer1App } from "./pages/transfer1/transfer_main.js";
 import { initTransferApp as initTransfer2App } from "./pages/transfer2/transfer_main.js";
+import { initHangerApp } from "./pages/hanger/hanger_main.js";
+import { initHangerInsideApp } from "./pages/hanger_inside/hanger_inside_main.js";
 
 const canvas = document.querySelector("#app");
 if (!canvas) {
@@ -248,6 +250,37 @@ function switchToTransfer1Page() {
   });
 }
 
+function switchToHangerInsidePage() {
+  if (currentPage === "hanger-inside") return;
+  fadeToBlack().then(() => {
+    currentApp?.dispose?.();
+    clearSceneObjects(scene);
+    currentApp = initHangerInsideApp({ scene, renderer, canvas });
+    currentPage = "hanger-inside";
+    setSidebarCurrentScreen("격납고 내부");
+    revealFromBlack();
+  });
+}
+
+function switchToHangerPage() {
+  if (currentPage === "hanger") return;
+  fadeToBlack().then(() => {
+    currentApp?.dispose?.();
+    clearSceneObjects(scene);
+    scene.background = new THREE.Color(0xcfe7ff);
+    addSunStyleLighting(scene);
+    currentApp = initHangerApp({
+      scene,
+      renderer,
+      canvas,
+      onEnterHangerInside: switchToHangerInsidePage,
+    });
+    currentPage = "hanger";
+    setSidebarCurrentScreen("격납고");
+    revealFromBlack();
+  });
+}
+
 function switchToTransfer2Page() {
   if (currentPage === "transfer2") return;
   fadeToBlack().then(() => {
@@ -264,6 +297,10 @@ function switchToTransfer2Page() {
 
 window.addEventListener("app:sidebar-menu", (event) => {
   const key = event?.detail?.key;
+  if (key === "hangar") {
+    switchToHangerPage();
+    return;
+  }
   if (key === "storage") {
     switchToStoragePage();
     return;
