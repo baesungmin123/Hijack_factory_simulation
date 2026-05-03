@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { createViewModeControls } from "../../components/Controls.js";
+import { setSceneReady } from "../../components/Transition.js";
 import { addJoinFactory1InsideFloor } from "./floor.js";
 import { addConveyor } from "./conveyor.js";
 import { addRobotArmBody } from "./robotarm_body.js";
@@ -14,9 +15,12 @@ export function initJoinFactory1InsideApp({ scene, renderer, canvas }) {
   key.position.set(12, 18, 10);
   scene.add(ambient, key);
 
-  addJoinFactory1InsideFloor(scene).catch(console.error);
-
   const anim = createJoin1Animation(scene);
+
+  setSceneReady(Promise.all([
+    addJoinFactory1InsideFloor(scene).catch(console.error),
+    anim.loadTemplates().catch(console.error),
+  ]));
 
   // body 컨베이어
   addConveyor(scene, { position: new THREE.Vector3(16.764, 0, -34.181) }).then(first => {
@@ -51,9 +55,6 @@ export function initJoinFactory1InsideApp({ scene, renderer, canvas }) {
     }).catch(console.error);
   }).catch(console.error);
   addConveyor(scene, { position: new THREE.Vector3(69.487, 0, -15.526) }).catch(console.error);
-
-  // GLB 템플릿 로드
-  anim.loadTemplates().catch(console.error);
 
   // 로봇팔
   addRobotArmBody(scene, { position: new THREE.Vector3(26, 0, -22.977) }).then(r => {

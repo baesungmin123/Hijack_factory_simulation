@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { createViewModeControls } from "../../components/Controls.js";
+import { setSceneReady } from "../../components/Transition.js";
 import { addPartsFactory1Floor } from "./floor.js";
 import { addPartsFactory1Building } from "./fatory.js";
 
@@ -91,7 +92,7 @@ export function initPartsFactory1App({ scene, renderer, canvas, onEnterInside })
     }
   }
 
-  addPartsFactory1Floor(scene, { scale: 1 })
+  setSceneReady(addPartsFactory1Floor(scene, { scale: 1 })
     .then(async ({ getBounds }) => {
       const floorBox = getBounds();
       const { root, getBounds: getBuildingBounds } = await addPartsFactory1Building(scene, {
@@ -105,7 +106,7 @@ export function initPartsFactory1App({ scene, renderer, canvas, onEnterInside })
     })
     .catch((err) => {
       console.error("조립공장1 씬 로드 실패:", err);
-    });
+    }));
 
   function onResize() {
     viewControls.resize(window.innerWidth, window.innerHeight);

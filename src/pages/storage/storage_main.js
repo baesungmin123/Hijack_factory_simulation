@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { createViewModeControls } from "../../components/Controls.js";
+import { setSceneReady } from "../../components/Transition.js";
 import { addTileFloor } from "./floor/floor.js";
 import { fitRootToAxisAlignedDimensions } from "./coords.js";
 
@@ -207,9 +208,9 @@ export function initStorageApp({ scene, renderer, canvas, onEnterStorageInside }
     rafId = requestAnimationFrame(animate);
   }
 
-  bootstrap().catch((err) => {
+  setSceneReady(bootstrap().catch((err) => {
     console.error("씬 초기화 실패:", err);
-  });
+  }));
 
   animate();
 

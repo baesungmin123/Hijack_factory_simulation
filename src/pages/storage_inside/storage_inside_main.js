@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { createViewModeControls } from "../../components/Controls.js";
+import { setSceneReady } from "../../components/Transition.js";
 import { addStorageInsideSet } from "./floor.js";
 import { addStorageMaterials } from "./material.js";
 import { addInsideLighting } from "./inside_light.js";
@@ -58,13 +59,11 @@ export function initStorageInsideApp({ scene, renderer, canvas }) {
     rafId = requestAnimationFrame(animate);
   }
 
-  addStorageMaterials(scene)
-    .then((layer) => {
-      materialsLayer = layer;
-    })
-    .catch((err) => {
-      console.error("원자재 스택 로드 실패:", err);
-    });
+  setSceneReady(
+    addStorageMaterials(scene)
+      .then((layer) => { materialsLayer = layer; })
+      .catch((err) => { console.error("원자재 스택 로드 실패:", err); })
+  );
 
   animate();
 

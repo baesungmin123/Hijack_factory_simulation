@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { createViewModeControls } from "../../components/Controls.js";
+import { setSceneReady } from "../../components/Transition.js";
 import { addHangerFloor } from "./floor.js";
 import { addHangarModels } from "./hangar.js";
 
@@ -135,7 +136,7 @@ export function initHangerApp({ scene, renderer, canvas, onEnterHangerInside }) 
     rafId = requestAnimationFrame(animate);
   }
 
-  bootstrap().catch((err) => console.error("격납고 씬 초기화 실패:", err));
+  setSceneReady(bootstrap().catch((err) => console.error("격납고 씬 초기화 실패:", err)));
   animate();
 
   return {

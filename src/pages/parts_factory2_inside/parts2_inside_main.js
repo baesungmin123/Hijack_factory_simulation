@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { createViewModeControls } from "../../components/Controls.js";
+import { setSceneReady } from "../../components/Transition.js";
 import { addPartsFactory2InsideFloor } from "./floor.js";
 import { initLeftAnimation } from "./left_animation.js";
 import { initRightAnimation } from "./right_animation.js";
@@ -16,7 +17,7 @@ export function initPartsFactory2InsideApp({ scene, renderer, canvas }) {
   key.position.set(12, 18, 10);
   scene.add(ambient, key);
 
-  addPartsFactory2InsideFloor(scene).catch((err) => console.error("바닥 로드 실패:", err));
+  setSceneReady(addPartsFactory2InsideFloor(scene).catch((err) => console.error("바닥 로드 실패:", err)));
 
   const leftAnim = initLeftAnimation(scene);
   const rightAnim = initRightAnimation(scene);

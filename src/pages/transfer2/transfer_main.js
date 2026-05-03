@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { createViewModeControls } from "../../components/Controls.js";
+import { setSceneReady } from "../../components/Transition.js";
 import { addTransferFloor } from "./floor.js";
 import { addTrucks } from "./truck.js";
 
@@ -121,19 +122,21 @@ export function initTransferApp({ scene, renderer, canvas }) {
     }
   }
 
-  addTransferFloor(scene, { scale: 1 })
-    .then(({ getBounds }) => {
-      const floorBox = getBounds();
-      addSplitGuides(floorBox);
-      viewControls.fitToBounds(floorBox);
-      return addTrucks(scene, floorBox);
-    })
-    .then((trucks) => {
-      trucksLayer = trucks;
-    })
-    .catch((err) => {
-      console.error("이송라인 씬 로드 실패:", err);
-    });
+  setSceneReady(
+    addTransferFloor(scene, { scale: 1 })
+      .then(({ getBounds }) => {
+        const floorBox = getBounds();
+        addSplitGuides(floorBox);
+        viewControls.fitToBounds(floorBox);
+        return addTrucks(scene, floorBox);
+      })
+      .then((trucks) => {
+        trucksLayer = trucks;
+      })
+      .catch((err) => {
+        console.error("이송라인 씬 로드 실패:", err);
+      })
+  );
 
   function onSidebarViewModeChange(event) {
     const next = event?.detail?.mode;

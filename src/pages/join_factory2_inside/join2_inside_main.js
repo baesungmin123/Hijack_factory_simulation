@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { createViewModeControls } from "../../components/Controls.js";
+import { setSceneReady } from "../../components/Transition.js";
 import { addJoinFactory2InsideFloor } from "./floor.js";
 import { addConveyor } from "./conveyor.js";
 import { addRobotArmHead } from "./robotarm_head.js";
@@ -13,9 +14,12 @@ export function initJoinFactory2InsideApp({ scene, renderer, canvas }) {
   key.position.set(12, 18, 10);
   scene.add(ambient, key);
 
-  addJoinFactory2InsideFloor(scene).catch(console.error);
-
   const anim = createJoin2Animation(scene);
+
+  setSceneReady(Promise.all([
+    addJoinFactory2InsideFloor(scene).catch(console.error),
+    anim.loadTemplates().catch(console.error),
+  ]));
 
   // 왼쪽 컨베이어 (X = 29.764) — Hijack_head
   addConveyor(scene, { position: new THREE.Vector3(29.764, 0, -34.181) }).then(first => {
@@ -38,9 +42,6 @@ export function initJoinFactory2InsideApp({ scene, renderer, canvas }) {
   addConveyor(scene, { position: new THREE.Vector3(56.167, 0,   3.267) }).catch(console.error);
   addConveyor(scene, { position: new THREE.Vector3(56.167, 0,  22.061) }).catch(console.error);
   addConveyor(scene, { position: new THREE.Vector3(56.167, 0,  41.021) }).catch(console.error);
-
-  // GLB 템플릿 로드
-  anim.loadTemplates().catch(console.error);
 
   // 로봇팔
   addRobotArmHead(scene, { position: new THREE.Vector3(40, 0, -22.977) }).then(r => {

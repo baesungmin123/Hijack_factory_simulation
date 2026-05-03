@@ -16,6 +16,7 @@ import { initTransferApp as initTransfer1App } from "./pages/transfer1/transfer_
 import { initTransferApp as initTransfer2App } from "./pages/transfer2/transfer_main.js";
 import { initHangerApp } from "./pages/hanger/hanger_main.js";
 import { initHangerInsideApp } from "./pages/hanger_inside/hanger_inside_main.js";
+import { fadeToBlack, revealFromBlack } from "./components/Transition.js";
 
 const canvas = document.querySelector("#app");
 if (!canvas) {
@@ -49,41 +50,13 @@ function clearSceneObjects(targetScene) {
   }
 }
 
-function ensureFadeOverlay() {
-  const id = "scene-fade-overlay";
-  let el = document.getElementById(id);
-  if (!el) {
-    el = document.createElement("div");
-    el.id = id;
-    el.style.cssText =
-      "position:fixed;inset:0;background:#000;transform:translateX(100%);pointer-events:none;transition:transform 420ms cubic-bezier(.22,.61,.36,1);will-change:transform;z-index:2000;";
-    document.body.appendChild(el);
-  }
-  return el;
-}
-
-function fadeToBlack() {
-  const overlay = ensureFadeOverlay();
-  overlay.style.transform = "translateX(100%)";
-  requestAnimationFrame(() => {
-    overlay.style.transform = "translateX(0)";
-  });
-  return new Promise((resolve) => {
-    window.setTimeout(resolve, 450);
-  });
-}
-
-function revealFromBlack() {
-  const overlay = ensureFadeOverlay();
-  overlay.style.transform = "translateX(-100%)";
-}
 
 let currentApp = null;
 let currentPage = "storage";
 
 function switchToStorageInside() {
   if (currentPage === "storage-inside") return;
-  fadeToBlack().then(() => {
+  fadeToBlack("/assets/icon/storage.png").then(() => {
     currentApp?.dispose?.();
     clearSceneObjects(scene);
     currentApp = initStorageInsideApp({ scene, renderer, canvas });
@@ -95,7 +68,7 @@ function switchToStorageInside() {
 
 function switchToStoragePage() {
   if (currentPage === "storage") return;
-  fadeToBlack().then(() => {
+  fadeToBlack("/assets/icon/storage.png").then(() => {
     currentApp?.dispose?.();
     clearSceneObjects(scene);
     scene.background = new THREE.Color(0xcfe7ff);
@@ -114,7 +87,7 @@ function switchToStoragePage() {
 
 function switchToPartsFactory1Page() {
   if (currentPage === "parts-factory1") return;
-  fadeToBlack().then(() => {
+  fadeToBlack("/assets/icon/factory.png").then(() => {
     currentApp?.dispose?.();
     clearSceneObjects(scene);
     scene.background = new THREE.Color(0xc7d9ee);
@@ -133,7 +106,7 @@ function switchToPartsFactory1Page() {
 
 function switchToPartsFactory1InsidePage() {
   if (currentPage === "parts-factory1-inside") return;
-  fadeToBlack().then(() => {
+  fadeToBlack("/assets/icon/factory.png").then(() => {
     currentApp?.dispose?.();
     clearSceneObjects(scene);
     currentApp = initPartsFactory1InsideApp({ scene, renderer, canvas });
@@ -145,7 +118,7 @@ function switchToPartsFactory1InsidePage() {
 
 function switchToPartsFactory2Page() {
   if (currentPage === "parts-factory2") return;
-  fadeToBlack().then(() => {
+  fadeToBlack("/assets/icon/factory.png").then(() => {
     currentApp?.dispose?.();
     clearSceneObjects(scene);
     scene.background = new THREE.Color(0xc7d9ee);
@@ -164,7 +137,7 @@ function switchToPartsFactory2Page() {
 
 function switchToPartsFactory2InsidePage() {
   if (currentPage === "parts-factory2-inside") return;
-  fadeToBlack().then(() => {
+  fadeToBlack("/assets/icon/factory.png").then(() => {
     currentApp?.dispose?.();
     clearSceneObjects(scene);
     currentApp = initPartsFactory2InsideApp({ scene, renderer, canvas });
@@ -176,7 +149,7 @@ function switchToPartsFactory2InsidePage() {
 
 function switchToJoinFactory1Page() {
   if (currentPage === "join-factory1") return;
-  fadeToBlack().then(() => {
+  fadeToBlack("/assets/icon/robotarm.png").then(() => {
     currentApp?.dispose?.();
     clearSceneObjects(scene);
     scene.background = new THREE.Color(0xc7d9ee);
@@ -195,7 +168,7 @@ function switchToJoinFactory1Page() {
 
 function switchToJoinFactory1InsidePage() {
   if (currentPage === "join-factory1-inside") return;
-  fadeToBlack().then(() => {
+  fadeToBlack("/assets/icon/robotarm.png").then(() => {
     currentApp?.dispose?.();
     clearSceneObjects(scene);
     currentApp = initJoinFactory1InsideApp({ scene, renderer, canvas });
@@ -207,7 +180,7 @@ function switchToJoinFactory1InsidePage() {
 
 function switchToJoinFactory2Page() {
   if (currentPage === "join-factory2") return;
-  fadeToBlack().then(() => {
+  fadeToBlack("/assets/icon/robotarm.png").then(() => {
     currentApp?.dispose?.();
     clearSceneObjects(scene);
     scene.background = new THREE.Color(0xc7d9ee);
@@ -226,7 +199,7 @@ function switchToJoinFactory2Page() {
 
 function switchToJoinFactory2InsidePage() {
   if (currentPage === "join-factory2-inside") return;
-  fadeToBlack().then(() => {
+  fadeToBlack("/assets/icon/robotarm.png").then(() => {
     currentApp?.dispose?.();
     clearSceneObjects(scene);
     currentApp = initJoinFactory2InsideApp({ scene, renderer, canvas });
@@ -238,7 +211,7 @@ function switchToJoinFactory2InsidePage() {
 
 function switchToTransfer1Page() {
   if (currentPage === "transfer1") return;
-  fadeToBlack().then(() => {
+  fadeToBlack("/assets/icon/truck.png").then(() => {
     currentApp?.dispose?.();
     clearSceneObjects(scene);
     scene.background = new THREE.Color(0xc7d9ee);
@@ -252,7 +225,7 @@ function switchToTransfer1Page() {
 
 function switchToHangerInsidePage() {
   if (currentPage === "hanger-inside") return;
-  fadeToBlack().then(() => {
+  fadeToBlack("/assets/icon/hanger.png").then(() => {
     currentApp?.dispose?.();
     clearSceneObjects(scene);
     currentApp = initHangerInsideApp({ scene, renderer, canvas });
@@ -264,7 +237,7 @@ function switchToHangerInsidePage() {
 
 function switchToHangerPage() {
   if (currentPage === "hanger") return;
-  fadeToBlack().then(() => {
+  fadeToBlack("/assets/icon/hanger.png").then(() => {
     currentApp?.dispose?.();
     clearSceneObjects(scene);
     scene.background = new THREE.Color(0xcfe7ff);
@@ -283,7 +256,7 @@ function switchToHangerPage() {
 
 function switchToTransfer2Page() {
   if (currentPage === "transfer2") return;
-  fadeToBlack().then(() => {
+  fadeToBlack("/assets/icon/truck.png").then(() => {
     currentApp?.dispose?.();
     clearSceneObjects(scene);
     scene.background = new THREE.Color(0xc7d9ee);

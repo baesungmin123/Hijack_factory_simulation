@@ -23,6 +23,53 @@ body {
   height: 100%;
 }
 
+.checker-overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(16, 1fr);
+  grid-template-rows: repeat(10, 1fr);
+  pointer-events: none;
+  z-index: 2000;
+}
+
+.checker-tile {
+  background: transparent;
+  transition: none;
+}
+
+.checker-tile.on {
+  background: #000;
+}
+
+.checker-loading-wrap {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.checker-loading-icon {
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.checker-loading-text {
+  color: #fff;
+  font-family: "DungGeunMo", monospace;
+  font-size: 30px;
+  letter-spacing: 4px;
+  white-space: nowrap;
+}
+
 .app-sidebar {
   position: fixed;
   top: 14px;

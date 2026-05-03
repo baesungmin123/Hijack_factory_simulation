@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { createViewModeControls } from "../../components/Controls.js";
 import { addHangerInsideFloor } from "./floor.js";
 import { addStands } from "./stand.js";
+import { setSceneReady } from "../../components/Transition.js";
 
 function addHangerInsideLighting(scene) {
   const group = new THREE.Group();
@@ -76,7 +77,7 @@ export function initHangerInsideApp({ scene, renderer, canvas }) {
     rafId = requestAnimationFrame(animate);
   }
 
-  Promise.all([
+  const ready = Promise.all([
     addHangerInsideFloor(scene),
     addStands(scene),
   ])
@@ -88,6 +89,7 @@ export function initHangerInsideApp({ scene, renderer, canvas }) {
       viewControls.setTarget(center);
     })
     .catch((err) => console.error("격납고 내부 로드 실패:", err));
+  setSceneReady(ready);
 
   animate();
 
