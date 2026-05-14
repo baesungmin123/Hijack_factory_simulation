@@ -39,6 +39,19 @@ export async function postCompletePart(location, part, count = 1) {
   }
 }
 
+export async function postCompleteHijack() {
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/inventory/complete-hijack`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  } catch (err) {
+    console.error("[API] complete-hijack 실패:", err);
+  }
+}
+
 export async function postUseRaw(location, count = 1) {
   try {
     const res = await fetch(`${API_BASE}/api/v1/inventory/use-raw`, {

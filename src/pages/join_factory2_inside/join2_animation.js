@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { postCompleteAssembly } from "../../api.js";
+import { postCompleteHijack, postUsePart } from "../../api.js";
 
 export function createJoin2Animation(scene) {
   const config = {
@@ -20,9 +20,21 @@ export function createJoin2Animation(scene) {
   let spawnInterval = null;
   let loadedCount = 0;
 
+  const inventory = { body: Infinity, head: Infinity };
+
+  function setInventory(body, head) {
+    inventory.body = body ?? Infinity;
+    inventory.head = head ?? Infinity;
+  }
+
+  function hasEnoughParts() {
+    return inventory.body > 0 && inventory.head > 0;
+  }
+
   function createSet() {
     if (!headTemplate || !bodyLegArmTemplate) return;
     if (config.leftStartZ === 0 && config.leftEndZ === 0) return;
+    if (!hasEnoughParts()) return;
 
     const hMesh = headTemplate.clone();
     hMesh.rotation.y = Math.PI * 1.5;
@@ -35,6 +47,9 @@ export function createJoin2Animation(scene) {
     blaMesh.scale.setScalar(3.5);
     blaMesh.position.set(config.rightX, config.rightY, config.rightStartZ);
     scene.add(blaMesh);
+
+    postUsePart("final_assembly", "head", 1);
+    postUsePart("final_assembly", "body", 1);
 
     sets.push({
       head: hMesh,
@@ -108,7 +123,7 @@ export function createJoin2Animation(scene) {
           scene.remove(s.head);
           scene.remove(s.bodyLegArm);
           scene.remove(s.hijack);
-          postCompleteAssembly("final");
+          postCompleteHijack();
           s.done = true;
         }
       }
@@ -164,6 +179,7 @@ export function createJoin2Animation(scene) {
     setHeadMixer,
     setLeftConveyor,
     setRightConveyor,
+    setInventory,
     loadTemplates,
     dispose,
   };

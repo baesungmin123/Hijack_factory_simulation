@@ -5,8 +5,62 @@ import { addJoinFactory2InsideFloor } from "./floor.js";
 import { addConveyor } from "./conveyor.js";
 import { addRobotArmHead } from "./robotarm_head.js";
 import { createJoin2Animation } from "./join2_animation.js";
+import { getFactoryWebSocket } from "../../websocket.js";
+
+const API_BASE = "http://127.0.0.1:8000";
 
 export function initJoinFactory2InsideApp({ scene, renderer, canvas }) {
+  // --- 재고 현황 바 ---
+  const badge = document.createElement("div");
+  badge.className = "inventory-badge";
+  badge.textContent = "하체: -- | 머리: -- | 격납고: --/10";
+  document.body.appendChild(badge);
+
+  function updateBadge({ body = "--", head = "--", hangar = "--" } = {}) {
+    badge.textContent = `하체: ${body} | 머리: ${head} | 격납고: ${hangar}/10`;
+  }
+
+  const stock = { body: undefined, head: undefined, hangar: undefined };
+
+  function applyStock() {
+    updateBadge(stock);
+    if (stock.body !== undefined && stock.head !== undefined) {
+      anim.setInventory(stock.body, stock.head);
+    }
+  }
+
+  async function fetchInventory() {
+    try {
+      const [finalRes, hangarRes] = await Promise.all([
+        fetch(`${API_BASE}/api/v1/inventory/final_assembly`),
+        fetch(`${API_BASE}/api/v1/inventory/hangar`),
+      ]);
+      if (!finalRes.ok) throw new Error(`final_assembly HTTP ${finalRes.status}`);
+      if (!hangarRes.ok) throw new Error(`hangar HTTP ${hangarRes.status}`);
+      const final = await finalRes.json();
+      const hangar = await hangarRes.json();
+      stock.body   = final.body;
+      stock.head   = final.head;
+      stock.hangar = hangar.raw_material;
+      applyStock();
+    } catch (err) {
+      console.error("[JoinFactory2Inside] 재고 로드 실패:", err);
+    }
+  }
+
+  const ws = getFactoryWebSocket();
+
+  function onInventoryUpdate(msg) {
+    const p = msg?.payload;
+    if (p?.final_assembly?.body !== undefined) stock.body   = p.final_assembly.body;
+    if (p?.final_assembly?.head !== undefined) stock.head   = p.final_assembly.head;
+    if (p?.hangar?.raw_material !== undefined) stock.hangar = p.hangar.raw_material;
+    applyStock();
+  }
+
+  ws.on("inventory_update", onInventoryUpdate);
+  fetchInventory();
+
   scene.background = new THREE.Color(0x121722);
 
   const ambient = new THREE.AmbientLight(0xffffff, 1.5);
@@ -85,6 +139,8 @@ export function initJoinFactory2InsideApp({ scene, renderer, canvas }) {
       if (rafId) cancelAnimationFrame(rafId);
       anim.dispose();
       viewControls.dispose();
+      ws.off("inventory_update", onInventoryUpdate);
+      badge.remove();
     },
   };
 }
