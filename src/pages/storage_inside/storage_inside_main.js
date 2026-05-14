@@ -4,12 +4,60 @@ import { setSceneReady } from "../../components/Transition.js";
 import { addStorageInsideSet } from "./floor.js";
 import { addStorageMaterials } from "./material.js";
 import { addInsideLighting } from "./inside_light.js";
+import { getFactoryWebSocket } from "../../websocket.js";
+
+const API_BASE = "http://127.0.0.1:8000";
 
 /**
  * 창고 내부 화면(임시): 검은 배경 + 중앙 타겟 시점.
  * @param {{ scene: THREE.Scene; renderer: THREE.WebGLRenderer; canvas: HTMLCanvasElement }} ctx
  */
 export function initStorageInsideApp({ scene, renderer, canvas }) {
+  // --- 재고 배지 ---
+  const badge = document.createElement("div");
+  badge.className = "inventory-badge";
+  badge.textContent = "원자재 재고: --";
+  document.body.appendChild(badge);
+
+  function updateBadge(n) {
+    badge.textContent = `원자재 재고: ${n}`;
+  }
+
+  function triggerRestockAnim() {
+    badge.classList.remove("inventory-badge--restock");
+    void badge.offsetWidth;
+    badge.classList.add("inventory-badge--restock");
+  }
+
+  async function fetchInitialInventory() {
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/inventory/`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const entry = data.find((item) => item.location === "raw_material");
+      if (entry == null) throw new Error("raw_material 항목 없음");
+      updateBadge(entry.raw_material);
+    } catch (err) {
+      console.error("[StorageInside] 재고 초기 로드 실패:", err);
+    }
+  }
+
+  const ws = getFactoryWebSocket();
+
+  function onInventoryUpdate(msg) {
+    updateBadge(msg.payload.raw_material.raw_material);
+  }
+
+  function onRestock() {
+    updateBadge(100);
+    triggerRestockAnim();
+  }
+
+  ws.on("inventory_update", onInventoryUpdate);
+  ws.on("restock", onRestock);
+
+  fetchInitialInventory();
+
   scene.background = new THREE.Color(0x121722);
 
   const insideLights = addInsideLighting(scene);
@@ -76,6 +124,9 @@ export function initStorageInsideApp({ scene, renderer, canvas }) {
       materialsLayer?.dispose();
       insideLights.dispose();
       viewControls.dispose();
+      ws.off("inventory_update", onInventoryUpdate);
+      ws.off("restock", onRestock);
+      badge.remove();
     },
   };
 }

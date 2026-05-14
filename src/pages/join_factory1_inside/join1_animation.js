@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { postCompleteAssembly } from "../../api.js";
 
 export function createJoin1Animation(scene) {
   const config = {
@@ -21,9 +22,22 @@ export function createJoin1Animation(scene) {
   let spawnInterval = null;
   let loadedCount = 0;
 
+  const inventory = { body: Infinity, arm: Infinity, leg: Infinity };
+
+  function setInventory(body, arm, leg) {
+    inventory.body = body ?? Infinity;
+    inventory.arm = arm ?? Infinity;
+    inventory.leg = leg ?? Infinity;
+  }
+
+  function hasEnoughParts() {
+    return inventory.body > 0 && inventory.arm > 0 && inventory.leg > 0;
+  }
+
   function createSet() {
     if (!bodyTemplate || !legTemplate || !armTemplate || !blTemplate || !blaTemplate) return;
     if (config.bodyStartZ === 0 && config.bodyEndZ === 0) return;
+    if (!hasEnoughParts()) return;
 
     const bMesh = bodyTemplate.clone();
     bMesh.rotation.y = Math.PI * 1.5;
@@ -135,6 +149,7 @@ export function createJoin1Animation(scene) {
           scene.remove(s.arm);
           scene.remove(s.bodyLeg);
           scene.remove(s.bodyLegArm);
+          postCompleteAssembly("first");
           s.done = true;
         }
       }
@@ -232,6 +247,7 @@ export function createJoin1Animation(scene) {
     setBodyConveyor,
     setLegConveyor,
     setArmConveyor,
+    setInventory,
     loadTemplates,
     dispose,
   };

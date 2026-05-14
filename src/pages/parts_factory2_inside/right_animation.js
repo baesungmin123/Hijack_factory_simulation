@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { postUseRaw, postCompletePart } from "../../api.js";
 import { addConveyor } from "./left/conveyor.js";
 import { addCuttingMachine } from "./left/cutting_machine.js";
 import { addRobotArm1 } from "./left/robot_arm1.js";
@@ -37,25 +38,26 @@ export function initRightAnimation(scene) {
   const flatMat = { mesh: null, moving: false, endZ: 0, speed: 6, y: 0, doneTimer: -1, triggered: false };
   const hijackHead = { mesh: null, moving: false, startZ: 0, endZ: 0, y: 0, speed: 6 };
 
+  let conv1ApiPending = true;
+
   let arm1Mixer = null;
   let arm1Actions = [];
   let arm1Started = false;
   let arm1Timer = 0;
   let arm1Fps = 24;
+  let arm1Duration = Infinity;
   let arm1Finished = false;
 
   addRobotArm1(scene, { position: new THREE.Vector3(-4, 0, 0) }).then(r => {
     arm1Mixer = r.mixer ?? null;
     arm1Actions = r.actions ?? [];
-    if (r.clips && r.clips[0] && r.clips[0].tracks[0]) {
-      const times = r.clips[0].tracks[0].times;
-      if (times.length >= 2) {
-        const frameCount = times.length - 1;
-        const duration = r.clips[0].duration;
-        arm1Fps = frameCount / duration;
+    if (r.clips && r.clips.length > 0) {
+      arm1Duration = r.clips.reduce((max, c) => Math.max(max, c.duration), 0) || 20;
+      const track = r.clips[0].tracks[0];
+      if (track && track.times.length >= 2) {
+        arm1Fps = (track.times.length - 1) / r.clips[0].duration;
       }
     }
-    if (arm1Mixer) arm1Mixer.addEventListener('finished', () => { arm1Finished = true; });
   }).catch(console.error);
 
   addConveyor(scene, { position: new THREE.Vector3(10.46, 0, 0.02) }).then(async conveyor => {
@@ -122,12 +124,16 @@ export function initRightAnimation(scene) {
         pressActions.forEach(a => { a.reset(); a.play(); a.paused = true; });
         mat.state = 'conv1';
         mat.timer = 0;
+        conv1ApiPending = true;
         if (mat.mesh) { mat.mesh.position.set(-8.86, mat.conv1.y, mat.conv1.minZ); mat.mesh.visible = true; }
       }
 
       if (arm1Started && arm1Mixer) {
         arm1Mixer.update(delta);
         arm1Timer += delta;
+        if (!arm1Finished && arm1Timer >= arm1Duration) {
+          arm1Finished = true;
+        }
         if (flatMat.mesh && !flatMat.triggered && arm1Timer >= 9) {
           flatMat.mesh.position.set(10.46, flatMat.y, 0);
           flatMat.mesh.visible = true;
@@ -171,11 +177,13 @@ export function initRightAnimation(scene) {
         if (hijackHead.mesh.position.z >= armHeadZ) {
           hijackHead.mesh.visible = false;
           hijackHead.moving = false;
+          postCompletePart("parts_b", "arm", 5);
         }
       }
 
       if (mat.mesh) {
         if (mat.state === 'conv1') {
+          if (conv1ApiPending) { conv1ApiPending = false; postUseRaw("parts_b"); }
           mat.mesh.position.z += mat.speed * delta;
           if (mat.mesh.position.z > mat.conv1.maxZ) {
             mat.mesh.visible = false;

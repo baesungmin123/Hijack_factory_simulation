@@ -6,8 +6,57 @@ import { addConveyor } from "./conveyor.js";
 import { addRobotArmBody } from "./robotarm_body.js";
 import { addRobotArmArm } from "./robotarm_arm.js";
 import { createJoin1Animation } from "./join1_animation.js";
+import { getFactoryWebSocket } from "../../websocket.js";
+
+const API_BASE = "http://127.0.0.1:8000";
 
 export function initJoinFactory1InsideApp({ scene, renderer, canvas }) {
+  // --- 재고 현황 바 ---
+  const badge = document.createElement("div");
+  badge.className = "inventory-badge";
+  badge.textContent = "몸통: -- | 팔: -- | 다리: --";
+  document.body.appendChild(badge);
+
+  function updateBadge({ body = "--", arm = "--", leg = "--" } = {}) {
+    badge.textContent = `몸통: ${body} | 팔: ${arm} | 다리: ${leg}`;
+  }
+
+  const stock = { body: undefined, arm: undefined, leg: undefined };
+
+  function applyStock() {
+    updateBadge(stock);
+    if (stock.body !== undefined && stock.arm !== undefined && stock.leg !== undefined) {
+      anim.setInventory(stock.body, stock.arm, stock.leg);
+    }
+  }
+
+  async function fetchInventory() {
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/inventory/assembly`);
+      if (!res.ok) throw new Error(`assembly HTTP ${res.status}`);
+      const asm = await res.json();
+      stock.body = asm.body;
+      stock.arm  = asm.arm;
+      stock.leg  = asm.leg;
+      applyStock();
+    } catch (err) {
+      console.error("[JoinFactory1Inside] 재고 로드 실패:", err);
+    }
+  }
+
+  const ws = getFactoryWebSocket();
+
+  function onInventoryUpdate(msg) {
+    const p = msg?.payload;
+    if (p?.assembly?.body !== undefined) stock.body = p.assembly.body;
+    if (p?.assembly?.arm  !== undefined) stock.arm  = p.assembly.arm;
+    if (p?.assembly?.leg  !== undefined) stock.leg  = p.assembly.leg;
+    applyStock();
+  }
+
+  ws.on("inventory_update", onInventoryUpdate);
+  fetchInventory();
+
   scene.background = new THREE.Color(0x121722);
 
   const ambient = new THREE.AmbientLight(0xffffff, 1.5);
@@ -102,6 +151,8 @@ export function initJoinFactory1InsideApp({ scene, renderer, canvas }) {
       if (rafId) cancelAnimationFrame(rafId);
       anim.dispose();
       viewControls.dispose();
+      ws.off("inventory_update", onInventoryUpdate);
+      badge.remove();
     },
   };
 }

@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { postCompleteAssembly } from "../../api.js";
 
 export function createJoin2Animation(scene) {
   const config = {
@@ -107,6 +108,7 @@ export function createJoin2Animation(scene) {
           scene.remove(s.head);
           scene.remove(s.bodyLegArm);
           scene.remove(s.hijack);
+          postCompleteAssembly("final");
           s.done = true;
         }
       }

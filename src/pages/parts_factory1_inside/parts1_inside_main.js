@@ -9,13 +9,57 @@ import { addRobotArmHead } from "./left/robot_arm_head.js";
 import { addPress } from "./left/press.js";
 import { addXF6300 } from "./left/xf6300.js";
 import { addBox } from "./left/box.js";
-import { initRightAnimation } from "./right_animation.js";
+import { initLeftAnimation } from "./left_animation.js";
+import { postUseRaw, postCompletePart } from "../../api.js";
+import { getFactoryWebSocket } from "../../websocket.js";
+
+const API_BASE = "http://127.0.0.1:8000";
 
 /**
  * 부품공장1 내부 화면
  * @param {{ scene: THREE.Scene; renderer: THREE.WebGLRenderer; canvas: HTMLCanvasElement }} ctx
  */
 export function initPartsFactory1InsideApp({ scene, renderer, canvas }) {
+  // --- 재고 현황 바 ---
+  const badge = document.createElement("div");
+  badge.className = "inventory-badge";
+  badge.textContent = "원자재: -- | 머리: -- | 몸통: --";
+  document.body.appendChild(badge);
+
+  function updateBadge({ raw = "--", head = "--", body = "--" } = {}) {
+    badge.textContent = `원자재: ${raw} | 머리: ${head} | 몸통: ${body}`;
+  }
+
+  async function fetchInventory() {
+    try {
+      const [resA, resAsm, resFinal] = await Promise.all([
+        fetch(`${API_BASE}/api/v1/inventory/parts_a`),
+        fetch(`${API_BASE}/api/v1/inventory/assembly`),
+        fetch(`${API_BASE}/api/v1/inventory/final_assembly`),
+      ]);
+      if (!resA.ok || !resAsm.ok || !resFinal.ok) throw new Error("inventory fetch 실패");
+      const [a, asm, final] = await Promise.all([resA.json(), resAsm.json(), resFinal.json()]);
+      updateBadge({ raw: a.raw_material, head: final.head, body: asm.body });
+    } catch (err) {
+      console.error("[PartsFactory1Inside] 재고 로드 실패:", err);
+    }
+  }
+
+  const ws = getFactoryWebSocket();
+
+  function onInventoryUpdate(msg) {
+    const p = msg?.payload;
+    if (!p) return;
+    updateBadge({
+      raw:  p?.parts_a?.raw_material,
+      head: p?.final_assembly?.head,
+      body: p?.assembly?.body,
+    });
+  }
+
+  ws.on("inventory_update", onInventoryUpdate);
+  fetchInventory();
+
   scene.background = new THREE.Color(0x121722);
 
   const ambient = new THREE.AmbientLight(0xffffff, 1.5);
@@ -84,6 +128,7 @@ export function initPartsFactory1InsideApp({ scene, renderer, canvas }) {
   let arm1Started = false;
   let arm1Timer = 0;
   let arm1Fps = 24;
+  let arm1Duration = Infinity;
   let arm1Finished = false;
 
   let pressMixer = null;
@@ -93,15 +138,13 @@ export function initPartsFactory1InsideApp({ scene, renderer, canvas }) {
   addRobotArm1(scene, { position: new THREE.Vector3(-4, 0, 0) }).then(r => {
     arm1Mixer = r.mixer ?? null;
     arm1Actions = r.actions ?? [];
-    if (r.clips && r.clips[0] && r.clips[0].tracks[0]) {
-      const times = r.clips[0].tracks[0].times;
-      if (times.length >= 2) {
-        const frameCount = times.length - 1;
-        const duration = r.clips[0].duration;
-        arm1Fps = frameCount / duration;
+    if (r.clips && r.clips.length > 0) {
+      arm1Duration = r.clips.reduce((max, c) => Math.max(max, c.duration), 0) || 20;
+      const track = r.clips[0].tracks[0];
+      if (track && track.times.length >= 2) {
+        arm1Fps = (track.times.length - 1) / r.clips[0].duration;
       }
     }
-    if (arm1Mixer) arm1Mixer.addEventListener('finished', () => { arm1Finished = true; });
   }).catch(console.error);
 
   addPress(scene, { position: new THREE.Vector3(18, 0, 0) }).then(r => {
@@ -120,7 +163,7 @@ export function initPartsFactory1InsideApp({ scene, renderer, canvas }) {
   }).catch(console.error);
   addBox(scene, { position: new THREE.Vector3(9.487, 0, 63.523) }).catch(console.error);
 
-  const rightAnim = initRightAnimation(scene);
+  const rightAnim = initLeftAnimation(scene);
 
   const target = new THREE.Vector3(0, 0, 30);
   const viewControls = createViewModeControls({
@@ -152,6 +195,8 @@ export function initPartsFactory1InsideApp({ scene, renderer, canvas }) {
   window.addEventListener("resize", onResize);
   window.addEventListener("app:viewmode-change", onSidebarViewModeChange);
 
+  let conv1ApiPending = true;
+
   const clock = new THREE.Clock();
   let rafId = 0;
   let disposed = false;
@@ -169,12 +214,16 @@ export function initPartsFactory1InsideApp({ scene, renderer, canvas }) {
       pressActions.forEach(a => { a.reset(); a.play(); a.paused = true; });
       mat.state = 'conv1';
       mat.timer = 0;
+      conv1ApiPending = true;
       if (mat.mesh) { mat.mesh.position.set(-8.86, mat.conv1.y, mat.conv1.minZ); mat.mesh.visible = true; }
     }
 
     if (arm1Started && arm1Mixer) {
       arm1Mixer.update(delta);
       arm1Timer += delta;
+      if (!arm1Finished && arm1Timer >= arm1Duration) {
+        arm1Finished = true;
+      }
       if (flatMat.mesh && !flatMat.triggered && arm1Timer >= 9) {
         flatMat.mesh.position.set(10.46, flatMat.y, 0);
         flatMat.mesh.visible = true;
@@ -218,12 +267,13 @@ export function initPartsFactory1InsideApp({ scene, renderer, canvas }) {
       if (hijackHead.mesh.position.z >= armHeadZ) {
         hijackHead.mesh.visible = false;
         hijackHead.moving = false;
+        postCompletePart("parts_a", "head", 5);
       }
     }
 
     if (mat.mesh) {
       if (mat.state === 'conv1') {
-
+        if (conv1ApiPending) { conv1ApiPending = false; }
         mat.mesh.position.z += mat.speed * delta;
         if (mat.mesh.position.z > mat.conv1.maxZ) {
           mat.mesh.visible = false;
@@ -265,6 +315,8 @@ export function initPartsFactory1InsideApp({ scene, renderer, canvas }) {
       window.removeEventListener("resize", onResize);
       window.removeEventListener("app:viewmode-change", onSidebarViewModeChange);
       viewControls.dispose();
+      ws.off("inventory_update", onInventoryUpdate);
+      badge.remove();
     },
   };
 }

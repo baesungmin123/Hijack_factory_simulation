@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { postUseRaw, postCompletePart } from "../../api.js";
 import { addConveyor } from "./right/conveyor.js";
 import { addCuttingMachine } from "./right/cutting_machine.js";
 import { addRobotArm1 } from "./right/robot_arm1.js";
@@ -37,23 +38,26 @@ export function initLeftAnimation(scene) {
   const flatMat = { mesh: null, moving: false, endZ: 0, speed: 6, y: 0, doneTimer: -1, triggered: false };
   const hijackBody = { mesh: null, moving: false, startZ: 0, endZ: 0, y: 0, speed: 6 };
 
+  let conv1ApiPending = true;
+
   let arm1Mixer = null;
   let arm1Actions = [];
   let arm1Started = false;
   let arm1Timer = 0;
   let arm1Fps = 24;
+  let arm1Duration = Infinity;
   let arm1Finished = false;
 
   addRobotArm1(scene, { position: new THREE.Vector3(92.369, 0, 0.088), rotationY: Math.PI }).then(r => {
     arm1Mixer = r.mixer ?? null;
     arm1Actions = r.actions ?? [];
-    if (r.clips && r.clips[0] && r.clips[0].tracks[0]) {
-      const times = r.clips[0].tracks[0].times;
-      if (times.length >= 2) {
-        arm1Fps = (times.length - 1) / r.clips[0].duration;
+    if (r.clips && r.clips.length > 0) {
+      arm1Duration = r.clips.reduce((max, c) => Math.max(max, c.duration), 0) || 20;
+      const track = r.clips[0].tracks[0];
+      if (track && track.times.length >= 2) {
+        arm1Fps = (track.times.length - 1) / r.clips[0].duration;
       }
     }
-    if (arm1Mixer) arm1Mixer.addEventListener('finished', () => { arm1Finished = true; });
   }).catch(console.error);
 
   addConveyor(scene, { position: new THREE.Vector3(77.909, 0, 0.073) }).then(async conveyor => {
@@ -118,12 +122,16 @@ export function initLeftAnimation(scene) {
         pressActions.forEach(a => { a.reset(); a.play(); a.paused = true; });
         mat.state = 'conv1';
         mat.timer = 0;
+        conv1ApiPending = true;
         if (mat.mesh) { mat.mesh.position.set(97.089, mat.conv1.y, mat.conv1.minZ); mat.mesh.visible = true; }
       }
 
       if (arm1Started && arm1Mixer) {
         arm1Mixer.update(delta);
         arm1Timer += delta;
+        if (!arm1Finished && arm1Timer >= arm1Duration) {
+          arm1Finished = true;
+        }
         if (flatMat.mesh && !flatMat.triggered && arm1Timer >= 9) {
           flatMat.mesh.position.set(77.909, flatMat.y, 0);
           flatMat.mesh.visible = true;
@@ -167,11 +175,13 @@ export function initLeftAnimation(scene) {
         if (hijackBody.mesh.position.z >= armBodyZ) {
           hijackBody.mesh.visible = false;
           hijackBody.moving = false;
+          postCompletePart("parts_b", "leg", 5);
         }
       }
 
       if (mat.mesh) {
         if (mat.state === 'conv1') {
+          if (conv1ApiPending) { conv1ApiPending = false; }
           mat.mesh.position.z += mat.speed * delta;
           if (mat.mesh.position.z > mat.conv1.maxZ) {
             mat.mesh.visible = false;

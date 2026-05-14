@@ -4,12 +4,54 @@ import { setSceneReady } from "../../components/Transition.js";
 import { addPartsFactory2InsideFloor } from "./floor.js";
 import { initLeftAnimation } from "./left_animation.js";
 import { initRightAnimation } from "./right_animation.js";
+import { getFactoryWebSocket } from "../../websocket.js";
+
+const API_BASE = "http://127.0.0.1:8000";
 
 /**
  * 부품공장2 내부 화면
  * @param {{ scene: THREE.Scene; renderer: THREE.WebGLRenderer; canvas: HTMLCanvasElement }} ctx
  */
 export function initPartsFactory2InsideApp({ scene, renderer, canvas }) {
+  // --- 재고 현황 바 ---
+  const badge = document.createElement("div");
+  badge.className = "inventory-badge";
+  badge.textContent = "원자재: -- | 다리: -- | 팔: --";
+  document.body.appendChild(badge);
+
+  function updateBadge({ raw = "--", leg = "--", arm = "--" } = {}) {
+    badge.textContent = `원자재: ${raw} | 다리: ${leg} | 팔: ${arm}`;
+  }
+
+  async function fetchInventory() {
+    try {
+      const [resB, resAsm] = await Promise.all([
+        fetch(`${API_BASE}/api/v1/inventory/parts_b`),
+        fetch(`${API_BASE}/api/v1/inventory/assembly`),
+      ]);
+      if (!resB.ok || !resAsm.ok) throw new Error("inventory fetch 실패");
+      const [b, asm] = await Promise.all([resB.json(), resAsm.json()]);
+      updateBadge({ raw: b.raw_material, leg: asm.leg, arm: asm.arm });
+    } catch (err) {
+      console.error("[PartsFactory2Inside] 재고 로드 실패:", err);
+    }
+  }
+
+  const ws = getFactoryWebSocket();
+
+  function onInventoryUpdate(msg) {
+    const p = msg?.payload;
+    if (!p) return;
+    updateBadge({
+      raw: p?.parts_b?.raw_material,
+      leg: p?.assembly?.leg,
+      arm: p?.assembly?.arm,
+    });
+  }
+
+  ws.on("inventory_update", onInventoryUpdate);
+  fetchInventory();
+
   scene.background = new THREE.Color(0x121722);
 
   const ambient = new THREE.AmbientLight(0xffffff, 1.5);
@@ -75,6 +117,8 @@ export function initPartsFactory2InsideApp({ scene, renderer, canvas }) {
       window.removeEventListener("resize", onResize);
       window.removeEventListener("app:viewmode-change", onSidebarViewModeChange);
       viewControls.dispose();
+      ws.off("inventory_update", onInventoryUpdate);
+      badge.remove();
     },
   };
 }

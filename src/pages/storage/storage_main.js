@@ -4,6 +4,9 @@ import { createViewModeControls } from "../../components/Controls.js";
 import { setSceneReady } from "../../components/Transition.js";
 import { addTileFloor } from "./floor/floor.js";
 import { fitRootToAxisAlignedDimensions } from "./coords.js";
+import { getFactoryWebSocket } from "../../websocket.js";
+
+const API_BASE = "http://127.0.0.1:8000";
 
 const STORAGE_URL = "/assets/blend/storage.glb";
 const storageLoader = new GLTFLoader();
@@ -25,6 +28,53 @@ const HANGAR_Y_NUDGE = 1.0;
  * }} ctx
  */
 export function initStorageApp({ scene, renderer, canvas, onEnterStorageInside }) {
+  // --- 재고 배지 ---
+  const badge = document.createElement("div");
+  badge.className = "inventory-badge";
+  badge.textContent = "원자재 재고: --";
+  document.body.appendChild(badge);
+
+  function updateBadge(n) {
+    badge.textContent = `원자재 재고: ${n}`;
+  }
+
+  function triggerRestockAnim() {
+    badge.classList.remove("inventory-badge--restock");
+    void badge.offsetWidth;
+    badge.classList.add("inventory-badge--restock");
+  }
+
+  // --- API / WebSocket ---
+  async function fetchInitialInventory() {
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/inventory/`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const entry = data.find((item) => item.location === "raw_material");
+      if (entry == null) throw new Error("raw_material 항목 없음");
+      updateBadge(entry.raw_material);
+    } catch (err) {
+      console.error("[Storage] 재고 초기 로드 실패:", err);
+    }
+  }
+
+  const ws = getFactoryWebSocket();
+
+  function onInventoryUpdate(msg) {
+    updateBadge(msg.payload.raw_material.raw_material);
+  }
+
+  function onRestock() {
+    updateBadge(100);
+    triggerRestockAnim();
+  }
+
+  ws.on("inventory_update", onInventoryUpdate);
+  ws.on("restock", onRestock);
+
+  fetchInitialInventory();
+
+  // --- 기존 코드 ---
   const raycaster = new THREE.Raycaster();
   const pointerNdc = new THREE.Vector2();
   /** @type {THREE.Object3D | null} */
@@ -222,6 +272,9 @@ export function initStorageApp({ scene, renderer, canvas, onEnterStorageInside }
       canvas.removeEventListener("click", onCanvasClick);
       window.removeEventListener("app:viewmode-change", onSidebarViewModeChange);
       viewControls.dispose();
+      ws.off("inventory_update", onInventoryUpdate);
+      ws.off("restock", onRestock);
+      badge.remove();
     },
   };
 }
