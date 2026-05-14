@@ -1,6 +1,5 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { postCompleteAssembly, postUsePart } from "../../api.js";
 
 export function createJoin1Animation(scene) {
   const config = {
@@ -68,10 +67,6 @@ export function createJoin1Animation(scene) {
     blaMesh.scale.setScalar(3.5);
     blaMesh.visible = false;
     scene.add(blaMesh);
-
-    postUsePart("assembly", "body", 1);
-    postUsePart("assembly", "arm", 1);
-    postUsePart("assembly", "leg", 1);
 
     sets.push({
       body: bMesh, leg: lMesh, arm: aMesh,
@@ -153,7 +148,6 @@ export function createJoin1Animation(scene) {
           scene.remove(s.arm);
           scene.remove(s.bodyLeg);
           scene.remove(s.bodyLegArm);
-          postCompleteAssembly("first");
           s.done = true;
         }
       }

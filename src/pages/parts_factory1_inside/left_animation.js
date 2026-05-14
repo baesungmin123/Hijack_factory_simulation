@@ -1,6 +1,5 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { postUseRaw, postCompletePart } from "../../api.js";
 import { addConveyor } from "./right/conveyor.js";
 import { addCuttingMachine } from "./right/cutting_machine.js";
 import { addRobotArm1 } from "./right/robot_arm1.js";
@@ -38,7 +37,6 @@ export function initLeftAnimation(scene) {
   const flatMat = { mesh: null, moving: false, endZ: 0, speed: 6, y: 0, doneTimer: -1, triggered: false };
   const hijackBody = { mesh: null, moving: false, startZ: 0, endZ: 0, y: 0, speed: 6 };
 
-  let conv1ApiPending = true;
 
   let arm1Mixer = null;
   let arm1Actions = [];
@@ -47,6 +45,26 @@ export function initLeftAnimation(scene) {
   let arm1Fps = 24;
   let arm1Duration = Infinity;
   let arm1Finished = false;
+  let rawMaterial = Infinity;
+  let waitingForRaw = false;
+
+  function tryStartCycle() {
+    if (rawMaterial <= 0) {
+      waitingForRaw = true;
+      if (mat.mesh) mat.mesh.visible = false;
+      return;
+    }
+    waitingForRaw = false;
+    arm1Started = false;
+    arm1Timer = 0;
+    pressStarted = false;
+    flatMat.triggered = false;
+    arm1Actions.forEach(a => { a.reset(); a.play(); a.paused = true; });
+    pressActions.forEach(a => { a.reset(); a.play(); a.paused = true; });
+    mat.state = 'conv1';
+    mat.timer = 0;
+    if (mat.mesh) { mat.mesh.position.set(97.089, mat.conv1.y, mat.conv1.minZ); mat.mesh.visible = true; }
+  }
 
   addRobotArm1(scene, { position: new THREE.Vector3(92.369, 0, 0.088), rotationY: Math.PI }).then(r => {
     arm1Mixer = r.mixer ?? null;
@@ -114,16 +132,7 @@ export function initLeftAnimation(scene) {
     update(delta) {
       if (arm1Finished) {
         arm1Finished = false;
-        arm1Started = false;
-        arm1Timer = 0;
-        pressStarted = false;
-        flatMat.triggered = false;
-        arm1Actions.forEach(a => { a.reset(); a.play(); a.paused = true; });
-        pressActions.forEach(a => { a.reset(); a.play(); a.paused = true; });
-        mat.state = 'conv1';
-        mat.timer = 0;
-        conv1ApiPending = true;
-        if (mat.mesh) { mat.mesh.position.set(97.089, mat.conv1.y, mat.conv1.minZ); mat.mesh.visible = true; }
+        tryStartCycle();
       }
 
       if (arm1Started && arm1Mixer) {
@@ -175,13 +184,11 @@ export function initLeftAnimation(scene) {
         if (hijackBody.mesh.position.z >= armBodyZ) {
           hijackBody.mesh.visible = false;
           hijackBody.moving = false;
-          postCompletePart("parts_a", "body", 5);
         }
       }
 
       if (mat.mesh) {
         if (mat.state === 'conv1') {
-          if (conv1ApiPending) { conv1ApiPending = false; postUseRaw("parts_a", 2); }
           mat.mesh.position.z += mat.speed * delta;
           if (mat.mesh.position.z > mat.conv1.maxZ) {
             mat.mesh.visible = false;
@@ -208,6 +215,10 @@ export function initLeftAnimation(scene) {
           }
         }
       }
+    },
+    setRawMaterial(n) {
+      rawMaterial = n;
+      if (waitingForRaw && rawMaterial > 0) tryStartCycle();
     },
   };
 }

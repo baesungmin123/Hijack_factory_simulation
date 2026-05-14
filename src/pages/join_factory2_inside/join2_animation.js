@@ -1,6 +1,5 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { postCompleteHijack, postUsePart } from "../../api.js";
 
 export function createJoin2Animation(scene) {
   const config = {
@@ -47,9 +46,6 @@ export function createJoin2Animation(scene) {
     blaMesh.scale.setScalar(3.5);
     blaMesh.position.set(config.rightX, config.rightY, config.rightStartZ);
     scene.add(blaMesh);
-
-    postUsePart("final_assembly", "head", 1);
-    postUsePart("final_assembly", "body", 1);
 
     sets.push({
       head: hMesh,
@@ -123,7 +119,6 @@ export function createJoin2Animation(scene) {
           scene.remove(s.head);
           scene.remove(s.bodyLegArm);
           scene.remove(s.hijack);
-          postCompleteHijack();
           s.done = true;
         }
       }

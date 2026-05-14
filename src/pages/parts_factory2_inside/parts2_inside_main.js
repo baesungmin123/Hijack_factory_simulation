@@ -47,6 +47,11 @@ export function initPartsFactory2InsideApp({ scene, renderer, canvas }) {
       leg: p?.assembly?.leg,
       arm: p?.assembly?.arm,
     });
+    if (p?.parts_b?.raw_material !== undefined) {
+      const n = p.parts_b.raw_material;
+      leftAnim.setRawMaterial(n);
+      rightAnim.setRawMaterial(n);
+    }
   }
 
   ws.on("inventory_update", onInventoryUpdate);

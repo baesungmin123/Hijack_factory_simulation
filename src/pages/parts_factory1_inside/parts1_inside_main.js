@@ -10,7 +10,6 @@ import { addPress } from "./left/press.js";
 import { addXF6300 } from "./left/xf6300.js";
 import { addBox } from "./left/box.js";
 import { initLeftAnimation } from "./left_animation.js";
-import { postUseRaw, postCompletePart } from "../../api.js";
 import { getFactoryWebSocket } from "../../websocket.js";
 
 const API_BASE = "http://127.0.0.1:8000";
@@ -55,6 +54,12 @@ export function initPartsFactory1InsideApp({ scene, renderer, canvas }) {
       head: p?.final_assembly?.head,
       body: p?.assembly?.body,
     });
+    if (p?.parts_a?.raw_material !== undefined) {
+      const n = p.parts_a.raw_material;
+      rawMaterial = n;
+      if (waitingForRaw && n > 0) tryStartCycle();
+      leftAnim.setRawMaterial(n);
+    }
   }
 
   ws.on("inventory_update", onInventoryUpdate);
@@ -130,6 +135,8 @@ export function initPartsFactory1InsideApp({ scene, renderer, canvas }) {
   let arm1Fps = 24;
   let arm1Duration = Infinity;
   let arm1Finished = false;
+  let rawMaterial = Infinity;
+  let waitingForRaw = false;
 
   let pressMixer = null;
   let pressActions = [];
@@ -195,7 +202,23 @@ export function initPartsFactory1InsideApp({ scene, renderer, canvas }) {
   window.addEventListener("resize", onResize);
   window.addEventListener("app:viewmode-change", onSidebarViewModeChange);
 
-  let conv1ApiPending = true;
+  function tryStartCycle() {
+    if (rawMaterial <= 0) {
+      waitingForRaw = true;
+      if (mat.mesh) mat.mesh.visible = false;
+      return;
+    }
+    waitingForRaw = false;
+    arm1Started = false;
+    arm1Timer = 0;
+    pressStarted = false;
+    flatMat.triggered = false;
+    arm1Actions.forEach(a => { a.reset(); a.play(); a.paused = true; });
+    pressActions.forEach(a => { a.reset(); a.play(); a.paused = true; });
+    mat.state = 'conv1';
+    mat.timer = 0;
+    if (mat.mesh) { mat.mesh.position.set(-8.86, mat.conv1.y, mat.conv1.minZ); mat.mesh.visible = true; }
+  }
 
   const clock = new THREE.Clock();
   let rafId = 0;
@@ -206,16 +229,7 @@ export function initPartsFactory1InsideApp({ scene, renderer, canvas }) {
 
     if (arm1Finished) {
       arm1Finished = false;
-      arm1Started = false;
-      arm1Timer = 0;
-      pressStarted = false;
-      flatMat.triggered = false;
-      arm1Actions.forEach(a => { a.reset(); a.play(); a.paused = true; });
-      pressActions.forEach(a => { a.reset(); a.play(); a.paused = true; });
-      mat.state = 'conv1';
-      mat.timer = 0;
-      conv1ApiPending = true;
-      if (mat.mesh) { mat.mesh.position.set(-8.86, mat.conv1.y, mat.conv1.minZ); mat.mesh.visible = true; }
+      tryStartCycle();
     }
 
     if (arm1Started && arm1Mixer) {
@@ -267,13 +281,11 @@ export function initPartsFactory1InsideApp({ scene, renderer, canvas }) {
       if (hijackHead.mesh.position.z >= armHeadZ) {
         hijackHead.mesh.visible = false;
         hijackHead.moving = false;
-        postCompletePart("parts_a", "head", 5);
       }
     }
 
     if (mat.mesh) {
       if (mat.state === 'conv1') {
-        if (conv1ApiPending) { conv1ApiPending = false; }
         mat.mesh.position.z += mat.speed * delta;
         if (mat.mesh.position.z > mat.conv1.maxZ) {
           mat.mesh.visible = false;
