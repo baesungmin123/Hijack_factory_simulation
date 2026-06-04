@@ -1,5 +1,6 @@
 import "./style.css";
 import * as THREE from "three";
+import { startClocks } from "./simulation/factoryClock.js";
 import { addSunStyleLighting } from "./components/Light.js";
 import { mountSidebar } from "./components/Sidebar.js";
 import { initStorageApp } from "./pages/storage/storage_main.js";
@@ -17,6 +18,7 @@ import { initTransferApp as initTransfer2App } from "./pages/transfer2/transfer_
 import { initHangerApp } from "./pages/hanger/hanger_main.js";
 import { initHangerInsideApp } from "./pages/hanger_inside/hanger_inside_main.js";
 import { fadeToBlack, revealFromBlack } from "./components/Transition.js";
+import { mountMinimap } from "./components/Map.js";
 
 const canvas = document.querySelector("#app");
 if (!canvas) {
@@ -37,6 +39,8 @@ renderer.toneMappingExposure = 1.18;
 
 addSunStyleLighting(scene);
 mountSidebar();
+startClocks();
+const minimap = mountMinimap();
 
 function setSidebarCurrentScreen(name) {
   window.dispatchEvent(
@@ -62,6 +66,7 @@ function switchToStorageInside() {
     currentApp = initStorageInsideApp({ scene, renderer, canvas });
     currentPage = "storage-inside";
     setSidebarCurrentScreen("창고 내부");
+    minimap.setPage("storage-inside");
     revealFromBlack();
   });
 }
@@ -81,6 +86,7 @@ function switchToStoragePage() {
     });
     currentPage = "storage";
     setSidebarCurrentScreen("원재료 창고");
+    minimap.setPage("storage");
     revealFromBlack();
   });
 }
@@ -100,6 +106,7 @@ function switchToPartsFactory1Page() {
     });
     currentPage = "parts-factory1";
     setSidebarCurrentScreen("부품공장(머리 + 몸통)");
+    minimap.setPage("parts-a");
     revealFromBlack();
   });
 }
@@ -112,6 +119,7 @@ function switchToPartsFactory1InsidePage() {
     currentApp = initPartsFactory1InsideApp({ scene, renderer, canvas });
     currentPage = "parts-factory1-inside";
     setSidebarCurrentScreen("부품공장1 내부");
+    minimap.setPage("parts-a-inside");
     revealFromBlack();
   });
 }
@@ -131,6 +139,7 @@ function switchToPartsFactory2Page() {
     });
     currentPage = "parts-factory2";
     setSidebarCurrentScreen("부품공장(팔 + 다리)");
+    minimap.setPage("parts-b");
     revealFromBlack();
   });
 }
@@ -143,6 +152,7 @@ function switchToPartsFactory2InsidePage() {
     currentApp = initPartsFactory2InsideApp({ scene, renderer, canvas });
     currentPage = "parts-factory2-inside";
     setSidebarCurrentScreen("부품공장2 내부");
+    minimap.setPage("parts-b-inside");
     revealFromBlack();
   });
 }
@@ -162,6 +172,7 @@ function switchToJoinFactory1Page() {
     });
     currentPage = "join-factory1";
     setSidebarCurrentScreen("조립공장(몸통+다리+팔)");
+    minimap.setPage("assembly-a");
     revealFromBlack();
   });
 }
@@ -174,6 +185,7 @@ function switchToJoinFactory1InsidePage() {
     currentApp = initJoinFactory1InsideApp({ scene, renderer, canvas });
     currentPage = "join-factory1-inside";
     setSidebarCurrentScreen("조립공장1 내부");
+    minimap.setPage("assembly-a-inside");
     revealFromBlack();
   });
 }
@@ -193,6 +205,7 @@ function switchToJoinFactory2Page() {
     });
     currentPage = "join-factory2";
     setSidebarCurrentScreen("조립공장(최종)");
+    minimap.setPage("assembly-b");
     revealFromBlack();
   });
 }
@@ -205,6 +218,7 @@ function switchToJoinFactory2InsidePage() {
     currentApp = initJoinFactory2InsideApp({ scene, renderer, canvas });
     currentPage = "join-factory2-inside";
     setSidebarCurrentScreen("조립공장2 내부");
+    minimap.setPage("assembly-b-inside");
     revealFromBlack();
   });
 }
@@ -219,6 +233,7 @@ function switchToTransfer1Page() {
     currentApp = initTransfer1App({ scene, renderer, canvas });
     currentPage = "transfer1";
     setSidebarCurrentScreen("이송라인");
+    minimap.setPage("line");
     revealFromBlack();
   });
 }
@@ -231,6 +246,7 @@ function switchToHangerInsidePage() {
     currentApp = initHangerInsideApp({ scene, renderer, canvas });
     currentPage = "hanger-inside";
     setSidebarCurrentScreen("격납고 내부");
+    minimap.setPage("hangar-inside");
     revealFromBlack();
   });
 }
@@ -250,6 +266,7 @@ function switchToHangerPage() {
     });
     currentPage = "hanger";
     setSidebarCurrentScreen("격납고");
+    minimap.setPage("hangar");
     revealFromBlack();
   });
 }
@@ -264,6 +281,7 @@ function switchToTransfer2Page() {
     currentApp = initTransfer2App({ scene, renderer, canvas });
     currentPage = "transfer2";
     setSidebarCurrentScreen("이송라인");
+    minimap.setPage("line");
     revealFromBlack();
   });
 }

@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { getJoinSets } from "../../simulation/factoryClock.js";
 
 export function createJoin1Animation(scene) {
   const config = {
@@ -33,27 +34,32 @@ export function createJoin1Animation(scene) {
     return inventory.body > 0 && inventory.arm > 0 && inventory.leg > 0;
   }
 
-  function createSet() {
+  function createSet(initialElapsed = 0) {
     if (!bodyTemplate || !legTemplate || !armTemplate || !blTemplate || !blaTemplate) return;
     if (config.bodyStartZ === 0 && config.bodyEndZ === 0) return;
     if (!hasEnoughParts()) return;
 
+    // 경과 시간만큼 위치 미리 계산
+    const bodyZ = Math.min(config.bodyStartZ + initialElapsed * config.bodySpeed, config.bodyEndZ);
+    const legZ  = Math.min(config.legStartZ  + initialElapsed * config.legSpeed,  config.legEndZ);
+    const armZ  = Math.min(config.armStartZ  + initialElapsed * config.armSpeed,  config.armEndZ);
+
     const bMesh = bodyTemplate.clone();
     bMesh.rotation.y = Math.PI * 1.5;
     bMesh.scale.setScalar(2.5);
-    bMesh.position.set(config.bodyX, config.bodyY, config.bodyStartZ);
+    bMesh.position.set(config.bodyX, config.bodyY, bodyZ);
     scene.add(bMesh);
 
     const lMesh = legTemplate.clone();
     lMesh.rotation.y = Math.PI * 1.5;
     lMesh.scale.setScalar(2.5);
-    lMesh.position.set(config.legX, config.legY, config.legStartZ);
+    lMesh.position.set(config.legX, config.legY, legZ);
     scene.add(lMesh);
 
     const aMesh = armTemplate.clone();
     aMesh.rotation.y = Math.PI * 1.5;
     aMesh.scale.setScalar(2.5);
-    aMesh.position.set(config.armX, config.armY, config.armStartZ);
+    aMesh.position.set(config.armX, config.armY, armZ);
     scene.add(aMesh);
 
     const blMesh = blTemplate.clone();
@@ -68,12 +74,18 @@ export function createJoin1Animation(scene) {
     blaMesh.visible = false;
     scene.add(blaMesh);
 
+    // 이미 로봇팔이 트리거됐어야 할 경우 상태 복원
+    const bodyRobotTriggered = bodyZ >= config.bodyArmTriggerZ;
+    const armRobotTriggered  = armZ  >= config.arm3TriggerZ;
+
     sets.push({
       body: bMesh, leg: lMesh, arm: aMesh,
       bodyLeg: blMesh, bodyLegArm: blaMesh,
       bodyLegSwapped: false, bodyLegArmSwapped: false,
-      bodyRobotTriggered: false, armRobotTriggered: false,
-      bodyRobotTime: 0, armRobotTime: 0,
+      bodyRobotTriggered,
+      armRobotTriggered,
+      bodyRobotTime: bodyRobotTriggered ? initialElapsed : 0,
+      armRobotTime:  armRobotTriggered  ? initialElapsed : 0,
       done: false,
     });
   }
@@ -81,8 +93,16 @@ export function createJoin1Animation(scene) {
   function onAllLoaded() {
     loadedCount++;
     if (loadedCount === 5) {
-      createSet();
+      syncFromClock();
       spawnInterval = setInterval(createSet, 10000);
+    }
+  }
+
+  function syncFromClock() {
+    // 클락에서 현재 진행 중인 세트 목록 가져와서 한번에 스폰
+    const simSets = getJoinSets();
+    for (const s of simSets) {
+      createSet(s.elapsed);
     }
   }
 
@@ -248,5 +268,6 @@ export function createJoin1Animation(scene) {
     setInventory,
     loadTemplates,
     dispose,
+    syncFromClock,
   };
 }

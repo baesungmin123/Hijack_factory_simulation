@@ -25,13 +25,10 @@ export function initPartsFactory2InsideApp({ scene, renderer, canvas }) {
 
   async function fetchInventory() {
     try {
-      const [resB, resAsm] = await Promise.all([
-        fetch(`${API_BASE}/api/v1/inventory/parts_b`),
-        fetch(`${API_BASE}/api/v1/inventory/assembly`),
-      ]);
-      if (!resB.ok || !resAsm.ok) throw new Error("inventory fetch 실패");
-      const [b, asm] = await Promise.all([resB.json(), resAsm.json()]);
-      updateBadge({ raw: b.raw_material, leg: asm.leg, arm: asm.arm });
+      const res = await fetch(`${API_BASE}/api/v1/inventory/parts_b`);
+      if (!res.ok) throw new Error("inventory fetch 실패");
+      const b = await res.json();
+      updateBadge({ raw: b.raw_material, leg: b.leg, arm: b.arm });
     } catch (err) {
       console.error("[PartsFactory2Inside] 재고 로드 실패:", err);
     }
@@ -44,8 +41,8 @@ export function initPartsFactory2InsideApp({ scene, renderer, canvas }) {
     if (!p) return;
     updateBadge({
       raw: p?.parts_b?.raw_material,
-      leg: p?.assembly?.leg,
-      arm: p?.assembly?.arm,
+      leg: p?.parts_b?.leg,
+      arm: p?.parts_b?.arm,
     });
     if (p?.parts_b?.raw_material !== undefined) {
       const n = p.parts_b.raw_material;
@@ -114,6 +111,7 @@ export function initPartsFactory2InsideApp({ scene, renderer, canvas }) {
     rafId = requestAnimationFrame(animate);
   }
   animate();
+  setTimeout(() => { leftAnim.syncFromClock(); rightAnim.syncFromClock(); }, 500);
 
   return {
     dispose() {

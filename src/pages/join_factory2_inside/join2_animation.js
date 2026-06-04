@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { getJoinSets } from "../../simulation/factoryClock.js";
 
 export function createJoin2Animation(scene) {
   const config = {
@@ -18,8 +19,9 @@ export function createJoin2Animation(scene) {
   let headRobotBusy = false;
   let spawnInterval = null;
   let loadedCount = 0;
+  let pendingTrigger = false;
 
-  const inventory = { body: Infinity, head: Infinity };
+  const inventory = { body: 0, head: 0 };
 
   function setInventory(body, head) {
     inventory.body = body ?? Infinity;
@@ -30,39 +32,47 @@ export function createJoin2Animation(scene) {
     return inventory.body > 0 && inventory.head > 0;
   }
 
-  function createSet() {
+  function createSet(initialElapsed = 0, force = false) {
     if (!headTemplate || !bodyLegArmTemplate) return;
     if (config.leftStartZ === 0 && config.leftEndZ === 0) return;
-    if (!hasEnoughParts()) return;
+    if (!force && !hasEnoughParts()) return;
+
+    const headZ  = Math.min(config.leftStartZ  + initialElapsed * config.leftSpeed,  config.leftEndZ);
+    const rightZ = Math.min(config.rightStartZ + initialElapsed * config.rightSpeed, config.rightEndZ);
 
     const hMesh = headTemplate.clone();
     hMesh.rotation.y = Math.PI * 1.5;
     hMesh.scale.setScalar(2);
-    hMesh.position.set(config.leftX, config.leftY, config.leftStartZ);
+    hMesh.position.set(config.leftX, config.leftY, headZ);
     scene.add(hMesh);
 
     const blaMesh = bodyLegArmTemplate.clone();
     blaMesh.rotation.y = Math.PI * 1.5;
     blaMesh.scale.setScalar(3.5);
-    blaMesh.position.set(config.rightX, config.rightY, config.rightStartZ);
+    blaMesh.position.set(config.rightX, config.rightY, rightZ);
     scene.add(blaMesh);
+
+    const robotTriggered = headZ >= config.headTriggerZ;
 
     sets.push({
       head: hMesh,
       bodyLegArm: blaMesh,
       hijack: null,
       hijackSwapped: false,
-      robotTriggered: false,
-      robotTime: 0,
+      robotTriggered,
+      robotTime: robotTriggered ? initialElapsed : 0,
       done: false,
     });
   }
 
   function onAllLoaded() {
     loadedCount++;
-    if (loadedCount === 3) {
-      createSet();
-      spawnInterval = setInterval(createSet, 10000);
+  }
+
+  function syncFromClock() {
+    const simSets = getJoinSets();
+    for (const s of simSets) {
+      createSet(s.elapsed);
     }
   }
 
@@ -136,11 +146,21 @@ export function createJoin2Animation(scene) {
     headActions.forEach(a => { a.paused = true; });
   }
 
+  function checkPendingTrigger() {
+    if (pendingTrigger
+        && headTemplate && bodyLegArmTemplate
+        && !(config.leftStartZ === 0 && config.leftEndZ === 0)) {
+      pendingTrigger = false;
+      createSet(0, true);
+    }
+  }
+
   function setLeftConveyor(startZ, endZ, y) {
     config.leftStartZ = startZ;
     config.leftEndZ = endZ;
     config.leftY = y;
     config.headTriggerZ = startZ + 5;
+    checkPendingTrigger();
   }
 
   function setRightConveyor(startZ, endZ, y) {
@@ -152,21 +172,28 @@ export function createJoin2Animation(scene) {
   async function loadTemplates() {
     const loader = new GLTFLoader();
 
-    const headGltf = await loader.loadAsync("/assets/blend/Hijack_head.glb");
-    headTemplate = headGltf.scene;
-    onAllLoaded();
-
-    const blaGltf = await loader.loadAsync("/assets/blend/body+leg+arm.glb");
+    const [headGltf, blaGltf, hjGltf] = await Promise.all([
+      loader.loadAsync("/assets/blend/Hijack_head.glb"),
+      loader.loadAsync("/assets/blend/body+leg+arm.glb"),
+      loader.loadAsync("/assets/blend/Hijack.glb"),
+    ]);
+    headTemplate       = headGltf.scene;
     bodyLegArmTemplate = blaGltf.scene;
-    onAllLoaded();
-
-    const hjGltf = await loader.loadAsync("/assets/blend/Hijack.glb");
-    hijackTemplate = hjGltf.scene;
-    onAllLoaded();
+    hijackTemplate     = hjGltf.scene;
+    checkPendingTrigger();
   }
 
   function dispose() {
     if (spawnInterval) clearInterval(spawnInterval);
+  }
+
+  function triggerSpawn() {
+    if (!headTemplate || !bodyLegArmTemplate
+        || (config.leftStartZ === 0 && config.leftEndZ === 0)) {
+      pendingTrigger = true;
+      return;
+    }
+    createSet(0, true);
   }
 
   return {
@@ -177,5 +204,7 @@ export function createJoin2Animation(scene) {
     setInventory,
     loadTemplates,
     dispose,
+    syncFromClock,
+    triggerSpawn,
   };
 }

@@ -1,8 +1,11 @@
 import * as THREE from "three";
 import { createViewModeControls } from "../../components/Controls.js";
 import { addHangerInsideFloor } from "./floor.js";
-import { addStands } from "./stand.js";
+import { addHangarHijacks } from "./hager_hijack.js";
 import { setSceneReady } from "../../components/Transition.js";
+import { getFactoryWebSocket } from "../../websocket.js";
+
+const API_BASE = "http://127.0.0.1:8000";
 
 function addHangerInsideLighting(scene) {
   const group = new THREE.Group();
@@ -42,6 +45,45 @@ export function initHangerInsideApp({ scene, renderer, canvas }) {
 
   const lights = addHangerInsideLighting(scene);
 
+  // --- 재고 배지 ---
+  const badge = document.createElement("div");
+  badge.className = "inventory-badge";
+  badge.textContent = "격납고: --/10";
+  document.body.appendChild(badge);
+
+  let hijacks = null;
+
+  function setCount(n) {
+    badge.textContent = `격납고: ${n}/10`;
+    hijacks?.setCount(n);
+  }
+
+  async function fetchInventory() {
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/inventory/hangar`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setCount(data.raw_material ?? 0);
+    } catch (err) {
+      console.error("[HangerInside] 재고 로드 실패:", err);
+    }
+  }
+
+  const ws = getFactoryWebSocket();
+
+  function onInventoryUpdate(msg) {
+    const n = msg?.payload?.hangar?.raw_material;
+    if (n !== undefined) setCount(n);
+  }
+
+  function onHangarLaunch() {
+    setCount(0);
+  }
+
+  ws.on("inventory_update", onInventoryUpdate);
+  ws.on("hangar_launch", onHangarLaunch);
+  fetchInventory();
+
   const viewControls = createViewModeControls({
     renderer,
     domElement: canvas,
@@ -79,7 +121,10 @@ export function initHangerInsideApp({ scene, renderer, canvas }) {
 
   const ready = Promise.all([
     addHangerInsideFloor(scene),
-    addStands(scene),
+    addHangarHijacks(scene).then(h => {
+      hijacks = h;
+      fetchInventory();
+    }),
   ])
     .then(([{ getBounds }]) => {
       const box = getBounds();
@@ -99,8 +144,12 @@ export function initHangerInsideApp({ scene, renderer, canvas }) {
       if (rafId) cancelAnimationFrame(rafId);
       window.removeEventListener("resize", onResize);
       window.removeEventListener("app:viewmode-change", onSidebarViewModeChange);
+      ws.off("inventory_update", onInventoryUpdate);
+      ws.off("hangar_launch", onHangarLaunch);
       lights.dispose();
+      hijacks?.dispose();
       viewControls.dispose();
+      badge.remove();
     },
   };
 }

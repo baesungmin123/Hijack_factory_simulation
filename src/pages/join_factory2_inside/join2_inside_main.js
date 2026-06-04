@@ -59,6 +59,23 @@ export function initJoinFactory2InsideApp({ scene, renderer, canvas }) {
   }
 
   ws.on("inventory_update", onInventoryUpdate);
+
+  let isPaused = false;
+
+  function onFactoryStatus(msg) {
+    const status = msg?.payload?.status;
+    console.log("[WS] factory_status 수신:", status);
+    if (status === "stopped") isPaused = true;
+    else if (status === "running") isPaused = false;
+  }
+
+  function onAssembly2Trigger() {
+    console.log("[WS] assembly2_trigger 수신 → triggerSpawn()");
+    anim.triggerSpawn();
+  }
+
+  ws.on("factory_status", onFactoryStatus);
+  ws.on("assembly2_trigger", onAssembly2Trigger);
   fetchInventory();
 
   scene.background = new THREE.Color(0x121722);
@@ -126,7 +143,7 @@ export function initJoinFactory2InsideApp({ scene, renderer, canvas }) {
   function animate() {
     if (disposed) return;
     const delta = clock.getDelta();
-    anim.update(delta);
+    anim.update(isPaused ? 0 : delta);
     viewControls.update();
     renderer.render(scene, viewControls.getActiveCamera());
     rafId = requestAnimationFrame(animate);
@@ -140,6 +157,8 @@ export function initJoinFactory2InsideApp({ scene, renderer, canvas }) {
       anim.dispose();
       viewControls.dispose();
       ws.off("inventory_update", onInventoryUpdate);
+      ws.off("factory_status", onFactoryStatus);
+      ws.off("assembly2_trigger", onAssembly2Trigger);
       badge.remove();
     },
   };

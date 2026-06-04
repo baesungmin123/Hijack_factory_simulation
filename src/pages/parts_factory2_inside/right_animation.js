@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { getPartsPhase, PT } from "../../simulation/factoryClock.js";
 import { addConveyor } from "./left/conveyor.js";
 import { addCuttingMachine } from "./left/cutting_machine.js";
 import { addRobotArm1 } from "./left/robot_arm1.js";
@@ -63,7 +64,6 @@ export function initRightAnimation(scene) {
     pressActions.forEach(a => { a.reset(); a.play(); a.paused = true; });
     mat.state = 'conv1';
     mat.timer = 0;
-    conv1ApiPending = true;
     if (mat.mesh) { mat.mesh.position.set(-8.86, mat.conv1.y, mat.conv1.minZ); mat.mesh.visible = true; }
   }
 
@@ -130,6 +130,75 @@ export function initRightAnimation(scene) {
   }).catch(console.error);
 
   addBox(scene, { position: new THREE.Vector3(9.487, 0, 63.523) }).catch(console.error);
+
+  function syncFromClock() {
+    const { phase, phaseTimer } = getPartsPhase('partsLeg');
+    if (phase === 'conv1') {
+      if (mat.mesh && mat.conv1.maxZ !== 0) {
+        mat.mesh.position.set(-8.86, mat.conv1.y, mat.conv1.minZ + phaseTimer * mat.speed);
+        mat.mesh.visible = true;
+      }
+      mat.state = 'conv1';
+    } else if (phase === 'cutting') {
+      if (mat.mesh) mat.mesh.visible = false;
+      mat.state = 'cutting';
+      mat.timer = phaseTimer;
+    } else {
+      const t = phaseTimer;
+      arm1Started = true;
+      arm1Timer = t;
+      if (arm1Mixer && arm1Actions.length > 0) {
+        arm1Actions.forEach(a => { a.reset(); a.play(); a.paused = false; });
+        arm1Mixer.setTime(t);
+      }
+      if (t >= PT.PRESS_START && pressMixer && pressActions.length > 0) {
+        pressActions.forEach(a => { a.reset(); a.play(); a.paused = false; });
+        pressMixer.setTime(Math.max(0, t - PT.PRESS_START));
+        pressStarted = true;
+      }
+      const conv2Duration = mat.conv2.maxZ !== 0 ? (mat.conv2.maxZ - mat.conv2.minZ) / mat.speed : 3.0;
+      if (t < conv2Duration) {
+        if (mat.mesh && mat.conv2.y !== 0) {
+          mat.mesh.position.set(-8.86, mat.conv2.y, mat.conv2.minZ + t * mat.speed);
+          mat.mesh.visible = true;
+        }
+        mat.state = 'conv2';
+      } else {
+        if (mat.mesh) mat.mesh.visible = false;
+        mat.state = 'done';
+      }
+      if (t >= PT.FLATMAT_APPEAR && flatMat.mesh) {
+        const ft = t - PT.FLATMAT_APPEAR;
+        flatMat.triggered = true;
+        if (ft < PT.FLATMAT_TRAVEL) {
+          flatMat.mesh.position.set(10.46, flatMat.y, ft * flatMat.speed);
+          flatMat.mesh.visible = true;
+          flatMat.moving = true;
+        } else {
+          flatMat.mesh.visible = false;
+          flatMat.moving = false;
+          const doneT = ft - PT.FLATMAT_TRAVEL;
+          flatMat.doneTimer = doneT;
+          if (doneT >= PT.HIJACK_WAIT && hijackHead.mesh) {
+            const ht = doneT - PT.HIJACK_WAIT;
+            if (ht < PT.HIJACK_TRAVEL) {
+              hijackHead.mesh.position.set(9, hijackHead.y, hijackHead.startZ + ht * hijackHead.speed);
+              hijackHead.mesh.visible = true;
+              hijackHead.moving = true;
+              flatMat.doneTimer = -1;
+              if (armHeadMixer && armHeadActions.length > 0) {
+                armHeadActions.forEach(a => { a.reset(); a.play(); });
+                armHeadMixer.setTime(ht);
+              }
+            } else {
+              hijackHead.mesh.visible = false;
+              flatMat.doneTimer = -1;
+            }
+          }
+        }
+      }
+    }
+  }
 
   return {
     update(delta) {
@@ -223,5 +292,6 @@ export function initRightAnimation(scene) {
       rawMaterial = n;
       if (waitingForRaw && rawMaterial > 0) tryStartCycle();
     },
+    syncFromClock,
   };
 }

@@ -32,12 +32,15 @@ export function initJoinFactory1InsideApp({ scene, renderer, canvas }) {
 
   async function fetchInventory() {
     try {
-      const res = await fetch(`${API_BASE}/api/v1/inventory/assembly`);
-      if (!res.ok) throw new Error(`assembly HTTP ${res.status}`);
-      const asm = await res.json();
-      stock.body = asm.body;
-      stock.arm  = asm.arm;
-      stock.leg  = asm.leg;
+      const [resA, resB] = await Promise.all([
+        fetch(`${API_BASE}/api/v1/inventory/parts_a`),
+        fetch(`${API_BASE}/api/v1/inventory/parts_b`),
+      ]);
+      if (!resA.ok || !resB.ok) throw new Error("inventory fetch 실패");
+      const [pa, pb] = await Promise.all([resA.json(), resB.json()]);
+      stock.body = pa.body;
+      stock.arm  = pb.arm;
+      stock.leg  = pb.leg;
       applyStock();
     } catch (err) {
       console.error("[JoinFactory1Inside] 재고 로드 실패:", err);
@@ -48,9 +51,9 @@ export function initJoinFactory1InsideApp({ scene, renderer, canvas }) {
 
   function onInventoryUpdate(msg) {
     const p = msg?.payload;
-    if (p?.assembly?.body !== undefined) stock.body = p.assembly.body;
-    if (p?.assembly?.arm  !== undefined) stock.arm  = p.assembly.arm;
-    if (p?.assembly?.leg  !== undefined) stock.leg  = p.assembly.leg;
+    if (p?.parts_a?.body !== undefined) stock.body = p.parts_a.body;
+    if (p?.parts_b?.arm  !== undefined) stock.arm  = p.parts_b.arm;
+    if (p?.parts_b?.leg  !== undefined) stock.leg  = p.parts_b.leg;
     applyStock();
   }
 

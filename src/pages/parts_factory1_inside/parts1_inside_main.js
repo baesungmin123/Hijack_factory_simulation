@@ -11,6 +11,7 @@ import { addXF6300 } from "./left/xf6300.js";
 import { addBox } from "./left/box.js";
 import { initLeftAnimation } from "./left_animation.js";
 import { getFactoryWebSocket } from "../../websocket.js";
+import { getPartsPhase, PT } from "../../simulation/factoryClock.js";
 
 const API_BASE = "http://127.0.0.1:8000";
 
@@ -38,7 +39,7 @@ export function initPartsFactory1InsideApp({ scene, renderer, canvas }) {
       ]);
       if (!resA.ok || !resAsm.ok || !resFinal.ok) throw new Error("inventory fetch 실패");
       const [a, asm, final] = await Promise.all([resA.json(), resAsm.json(), resFinal.json()]);
-      updateBadge({ raw: a.raw_material, head: final.head, body: asm.body });
+      updateBadge({ raw: a.raw_material, head: final.head, body: a.body });
     } catch (err) {
       console.error("[PartsFactory1Inside] 재고 로드 실패:", err);
     }
@@ -52,7 +53,7 @@ export function initPartsFactory1InsideApp({ scene, renderer, canvas }) {
     updateBadge({
       raw:  p?.parts_a?.raw_material,
       head: p?.final_assembly?.head,
-      body: p?.assembly?.body,
+      body: p?.parts_a?.body,
     });
     if (p?.parts_a?.raw_material !== undefined) {
       const n = p.parts_a.raw_material;
@@ -220,6 +221,86 @@ export function initPartsFactory1InsideApp({ scene, renderer, canvas }) {
     if (mat.mesh) { mat.mesh.position.set(-8.86, mat.conv1.y, mat.conv1.minZ); mat.mesh.visible = true; }
   }
 
+  // 클락 현재 상태로 애니메이션 점프
+  function syncFromClock() {
+    const { phase, phaseTimer } = getPartsPhase('partsHead');
+
+    if (phase === 'conv1') {
+      if (mat.mesh && mat.conv1.maxZ !== 0) {
+        mat.mesh.position.set(-8.86, mat.conv1.y, mat.conv1.minZ + phaseTimer * mat.speed);
+        mat.mesh.visible = true;
+      }
+      mat.state = 'conv1';
+    } else if (phase === 'cutting') {
+      if (mat.mesh) mat.mesh.visible = false;
+      mat.state = 'cutting';
+      mat.timer = phaseTimer;
+    } else {
+      // arm phase
+      const t = phaseTimer;
+      arm1Started = true;
+      arm1Timer = t;
+      if (arm1Mixer && arm1Actions.length > 0) {
+        arm1Actions.forEach(a => { a.reset(); a.play(); a.paused = false; });
+        arm1Mixer.setTime(t);
+      }
+      if (t >= PT.PRESS_START && pressMixer && pressActions.length > 0) {
+        pressActions.forEach(a => { a.reset(); a.play(); a.paused = false; });
+        pressMixer.setTime(Math.max(0, t - PT.PRESS_START));
+        pressStarted = true;
+      }
+
+      // conv2 위 원자재
+      const conv2Duration = mat.conv2.maxZ !== 0
+        ? (mat.conv2.maxZ - mat.conv2.minZ) / mat.speed
+        : 3.0;
+      if (t < conv2Duration) {
+        if (mat.mesh && mat.conv2.y !== 0) {
+          mat.mesh.position.set(-8.86, mat.conv2.y, mat.conv2.minZ + t * mat.speed);
+          mat.mesh.visible = true;
+        }
+        mat.state = 'conv2';
+      } else {
+        if (mat.mesh) mat.mesh.visible = false;
+        mat.state = 'done';
+      }
+
+      // flatMat
+      if (t >= PT.FLATMAT_APPEAR && flatMat.mesh) {
+        const ft = t - PT.FLATMAT_APPEAR;
+        flatMat.triggered = true;
+        if (ft < PT.FLATMAT_TRAVEL) {
+          const z = ft * flatMat.speed;
+          flatMat.mesh.position.set(10.46, flatMat.y, z);
+          flatMat.mesh.visible = true;
+          flatMat.moving = true;
+        } else {
+          flatMat.mesh.visible = false;
+          flatMat.moving = false;
+          const doneT = ft - PT.FLATMAT_TRAVEL;
+          flatMat.doneTimer = doneT;
+
+          if (doneT >= PT.HIJACK_WAIT && hijackHead.mesh) {
+            const ht = doneT - PT.HIJACK_WAIT;
+            if (ht < PT.HIJACK_TRAVEL) {
+              hijackHead.mesh.position.set(10.461, hijackHead.y, hijackHead.startZ + ht * hijackHead.speed);
+              hijackHead.mesh.visible = true;
+              hijackHead.moving = true;
+              flatMat.doneTimer = -1;
+              if (armHeadMixer && armHeadActions.length > 0) {
+                armHeadActions.forEach(a => { a.reset(); a.play(); });
+                armHeadMixer.setTime(ht);
+              }
+            } else {
+              hijackHead.mesh.visible = false;
+              flatMat.doneTimer = -1;
+            }
+          }
+        }
+      }
+    }
+  }
+
   const clock = new THREE.Clock();
   let rafId = 0;
   let disposed = false;
@@ -319,6 +400,8 @@ export function initPartsFactory1InsideApp({ scene, renderer, canvas }) {
     rafId = requestAnimationFrame(animate);
   }
   animate();
+  // 에셋 로드(비동기) 완료 후 클락 상태로 싱크
+  setTimeout(() => { syncFromClock(); rightAnim.syncFromClock(); }, 500);
 
   return {
     dispose() {
