@@ -14,7 +14,6 @@ import { initPartsFactory2InsideApp } from "./pages/parts_factory2_inside/parts2
 import { initJoinFactory1InsideApp } from "./pages/join_factory1_inside/join1_inside_main.js";
 import { initJoinFactory2InsideApp } from "./pages/join_factory2_inside/join2_inside_main.js";
 import { initTransferApp as initTransfer1App } from "./pages/transfer1/transfer_main.js";
-import { initTransferApp as initTransfer2App } from "./pages/transfer2/transfer_main.js";
 import { initHangerApp } from "./pages/hanger/hanger_main.js";
 import { initHangerInsideApp } from "./pages/hanger_inside/hanger_inside_main.js";
 import { fadeToBlack, revealFromBlack } from "./components/Transition.js";
@@ -271,21 +270,6 @@ function switchToHangerPage() {
   });
 }
 
-function switchToTransfer2Page() {
-  if (currentPage === "transfer2") return;
-  fadeToBlack("/assets/icon/truck.png").then(() => {
-    currentApp?.dispose?.();
-    clearSceneObjects(scene);
-    scene.background = new THREE.Color(0xc7d9ee);
-    addSunStyleLighting(scene);
-    currentApp = initTransfer2App({ scene, renderer, canvas });
-    currentPage = "transfer2";
-    setSidebarCurrentScreen("이송라인");
-    minimap.setPage("line");
-    revealFromBlack();
-  });
-}
-
 window.addEventListener("app:sidebar-menu", (event) => {
   const key = event?.detail?.key;
   if (key === "hangar") {
@@ -314,18 +298,6 @@ window.addEventListener("app:sidebar-menu", (event) => {
   }
   if (key === "line") {
     switchToTransfer1Page();
-    return;
-  }
-});
-
-window.addEventListener("app:transfer-route", (event) => {
-  const route = event?.detail?.route;
-  if (route === "storage-to-assembly") {
-    switchToTransfer1Page();
-    return;
-  }
-  if (route === "final-to-hangar") {
-    switchToTransfer2Page();
     return;
   }
 });

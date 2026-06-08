@@ -6,7 +6,7 @@ import { addStorageMaterials } from "./material.js";
 import { addInsideLighting } from "./inside_light.js";
 import { getFactoryWebSocket } from "../../websocket.js";
 
-const API_BASE = "http://127.0.0.1:8000";
+const API_BASE = `http://${window.location.hostname}:8000`;
 
 /**
  * 창고 내부 화면(임시): 검은 배경 + 중앙 타겟 시점.

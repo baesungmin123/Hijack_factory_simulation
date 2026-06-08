@@ -6,7 +6,7 @@ import { initLeftAnimation } from "./left_animation.js";
 import { initRightAnimation } from "./right_animation.js";
 import { getFactoryWebSocket } from "../../websocket.js";
 
-const API_BASE = "http://127.0.0.1:8000";
+const API_BASE = `http://${window.location.hostname}:8000`;
 
 /**
  * 부품공장2 내부 화면

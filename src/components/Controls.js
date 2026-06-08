@@ -30,7 +30,7 @@ export function createViewModeControls({
     near,
     far
   );
-  perspectiveCamera.position.set(orthoD * 0.6, orthoD * 0.45, orthoD * 1.2);
+  perspectiveCamera.position.set(orthoD * 0.4, orthoD * 0.3, orthoD * 0.8);
 
   const orthographicCamera = new THREE.OrthographicCamera(
     -orthoD * aspect0,
@@ -84,7 +84,7 @@ export function createViewModeControls({
 
   function applyDefaultPose(which) {
     if (which === "perspective") {
-      perspectiveCamera.position.set(orthoD * 0.6, orthoD * 0.45, orthoD * 1.2);
+      perspectiveCamera.position.set(orthoD * 0.4, orthoD * 0.3, orthoD * 0.8);
       perspectiveCamera.quaternion.identity();
       perspectiveCamera.zoom = 1;
       perspectiveCamera.updateProjectionMatrix();
@@ -200,7 +200,7 @@ export function createViewModeControls({
       combinedBox.getBoundingSphere(sphere);
       const center = sphere.center;
       const r = Math.max(sphere.radius, 0.01);
-      const distance = Math.max(r * 1.78, 40);
+      const distance = Math.max(r * 1.2, 25);
       perspectiveCamera.position.copy(center).addScaledVector(VIEW_DIR, distance);
       perspectiveCamera.updateProjectionMatrix();
       target.copy(center);
@@ -224,7 +224,7 @@ export function createViewModeControls({
       const center = sphere.center;
       const r = Math.max(sphere.radius, 0.01);
       const viewDir = new THREE.Vector3(30, 24, 28).normalize();
-      const distance = Math.max(r * 1.78, 40);
+      const distance = Math.max(r * 1.2, 25);
 
       for (const cam of [perspectiveCamera, orthographicCamera]) {
         cam.position.copy(center).addScaledVector(viewDir, distance);

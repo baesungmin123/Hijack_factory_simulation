@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { getJoinSets } from "../../simulation/factoryClock.js";
+import { postAddFinalHijack } from "../../api.js";
 
 export function createJoin2Animation(scene) {
   const config = {
@@ -130,6 +131,7 @@ export function createJoin2Animation(scene) {
           scene.remove(s.bodyLegArm);
           scene.remove(s.hijack);
           s.done = true;
+          postAddFinalHijack();
         }
       }
       if (!s.hijackSwapped && s.bodyLegArm.position.z >= config.rightEndZ) {

@@ -8,7 +8,7 @@ import { addRobotArmArm } from "./robotarm_arm.js";
 import { createJoin1Animation } from "./join1_animation.js";
 import { getFactoryWebSocket } from "../../websocket.js";
 
-const API_BASE = "http://127.0.0.1:8000";
+const API_BASE = `http://${window.location.hostname}:8000`;
 
 export function initJoinFactory1InsideApp({ scene, renderer, canvas }) {
   // --- 재고 현황 바 ---

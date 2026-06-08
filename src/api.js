@@ -1,4 +1,4 @@
-const API_BASE = "http://127.0.0.1:8000";
+const API_BASE = `http://${window.location.hostname}:8000`;
 
 export async function postCompleteAssembly(stage) {
   try {
@@ -36,6 +36,17 @@ export async function postCompletePart(location, part, count = 1) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
   } catch (err) {
     console.error(`[API] complete-part(${location}/${part}) 실패:`, err);
+  }
+}
+
+export async function postAddFinalHijack() {
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/inventory/add-final-hijack`, {
+      method: "POST",
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  } catch (err) {
+    console.error("[API] add-final-hijack 실패:", err);
   }
 }
 

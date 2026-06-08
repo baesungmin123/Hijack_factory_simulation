@@ -6,7 +6,7 @@ import { addTileFloor } from "./floor/floor.js";
 import { fitRootToAxisAlignedDimensions } from "./coords.js";
 import { getFactoryWebSocket } from "../../websocket.js";
 
-const API_BASE = "http://127.0.0.1:8000";
+const API_BASE = `http://${window.location.hostname}:8000`;
 
 const STORAGE_URL = "/assets/blend/storage.glb";
 const storageLoader = new GLTFLoader();

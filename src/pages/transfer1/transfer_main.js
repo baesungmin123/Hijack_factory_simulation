@@ -4,51 +4,6 @@ import { setSceneReady } from "../../components/Transition.js";
 import { addTransferFloor } from "./floor.js";
 import { addTrucks } from "./truck.js";
 
-const TRANSFER_ROUTE_BAR_ID = "transfer-route-bar";
-
-function mountTransferRouteBar() {
-  if (document.getElementById(TRANSFER_ROUTE_BAR_ID)) return;
-
-  const bar = document.createElement("div");
-  bar.id = TRANSFER_ROUTE_BAR_ID;
-  bar.className = "transfer-route-bar";
-  bar.setAttribute("role", "toolbar");
-  bar.setAttribute("aria-label", "이송 경로");
-
-  const inner = document.createElement("div");
-  inner.className = "transfer-route-bar-inner";
-
-  const btnA = document.createElement("button");
-  btnA.type = "button";
-  btnA.className = "transfer-route-btn";
-  btnA.dataset.route = "storage-to-assembly";
-  btnA.textContent = "원재료 창고 -> 조립공장 1, 2";
-
-  const btnB = document.createElement("button");
-  btnB.type = "button";
-  btnB.className = "transfer-route-btn";
-  btnB.dataset.route = "final-to-hangar";
-  btnB.textContent = "최종 조립공장 -> 격납고";
-
-  inner.append(btnA, btnB);
-  bar.append(inner);
-  document.body.appendChild(bar);
-
-  inner.addEventListener("click", (event) => {
-    const el = event.target;
-    if (!(el instanceof HTMLButtonElement)) return;
-    const route = el.dataset.route;
-    if (!route) return;
-    window.dispatchEvent(
-      new CustomEvent("app:transfer-route", { detail: { route } })
-    );
-  });
-}
-
-function unmountTransferRouteBar() {
-  document.getElementById(TRANSFER_ROUTE_BAR_ID)?.remove();
-}
-
 /**
  * 이송라인(transfer) 화면 초기화
  * - transfer_tile.glb 바닥 배치
@@ -56,7 +11,6 @@ function unmountTransferRouteBar() {
  * @param {{ scene: THREE.Scene; renderer: THREE.WebGLRenderer; canvas: HTMLCanvasElement }} ctx
  */
 export function initTransferApp({ scene, renderer, canvas }) {
-  mountTransferRouteBar();
 
   scene.background = new THREE.Color(0xc7d9ee);
 
@@ -177,7 +131,6 @@ export function initTransferApp({ scene, renderer, canvas }) {
         scene.remove(obj);
       }
       viewControls.dispose();
-      unmountTransferRouteBar();
     },
   };
 }

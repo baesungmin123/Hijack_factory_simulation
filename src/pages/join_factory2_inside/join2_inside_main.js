@@ -7,20 +7,20 @@ import { addRobotArmHead } from "./robotarm_head.js";
 import { createJoin2Animation } from "./join2_animation.js";
 import { getFactoryWebSocket } from "../../websocket.js";
 
-const API_BASE = "http://127.0.0.1:8000";
+const API_BASE = `http://${window.location.hostname}:8000`;
 
 export function initJoinFactory2InsideApp({ scene, renderer, canvas }) {
   // --- 재고 현황 바 ---
   const badge = document.createElement("div");
   badge.className = "inventory-badge";
-  badge.textContent = "하체: -- | 머리: -- | 격납고: --/10";
+  badge.textContent = "하체: -- | 머리: -- | 하이잭: --";
   document.body.appendChild(badge);
 
-  function updateBadge({ body = "--", head = "--", hangar = "--" } = {}) {
-    badge.textContent = `하체: ${body} | 머리: ${head} | 격납고: ${hangar}/10`;
+  function updateBadge({ body = "--", head = "--", hijack = "--" } = {}) {
+    badge.textContent = `하체: ${body} | 머리: ${head} | 하이잭: ${hijack}`;
   }
 
-  const stock = { body: undefined, head: undefined, hangar: undefined };
+  const stock = { body: undefined, head: undefined, hijack: undefined };
 
   function applyStock() {
     updateBadge(stock);
@@ -31,17 +31,12 @@ export function initJoinFactory2InsideApp({ scene, renderer, canvas }) {
 
   async function fetchInventory() {
     try {
-      const [finalRes, hangarRes] = await Promise.all([
-        fetch(`${API_BASE}/api/v1/inventory/final_assembly`),
-        fetch(`${API_BASE}/api/v1/inventory/hangar`),
-      ]);
-      if (!finalRes.ok) throw new Error(`final_assembly HTTP ${finalRes.status}`);
-      if (!hangarRes.ok) throw new Error(`hangar HTTP ${hangarRes.status}`);
-      const final = await finalRes.json();
-      const hangar = await hangarRes.json();
+      const res = await fetch(`${API_BASE}/api/v1/inventory/final_assembly`);
+      if (!res.ok) throw new Error(`final_assembly HTTP ${res.status}`);
+      const final = await res.json();
       stock.body   = final.body;
       stock.head   = final.head;
-      stock.hangar = hangar.raw_material;
+      stock.hijack = final.raw_material;
       applyStock();
     } catch (err) {
       console.error("[JoinFactory2Inside] 재고 로드 실패:", err);
@@ -52,9 +47,9 @@ export function initJoinFactory2InsideApp({ scene, renderer, canvas }) {
 
   function onInventoryUpdate(msg) {
     const p = msg?.payload;
-    if (p?.final_assembly?.body !== undefined) stock.body   = p.final_assembly.body;
-    if (p?.final_assembly?.head !== undefined) stock.head   = p.final_assembly.head;
-    if (p?.hangar?.raw_material !== undefined) stock.hangar = p.hangar.raw_material;
+    if (p?.final_assembly?.body !== undefined)        stock.body   = p.final_assembly.body;
+    if (p?.final_assembly?.head !== undefined)        stock.head   = p.final_assembly.head;
+    if (p?.final_assembly?.raw_material !== undefined) stock.hijack = p.final_assembly.raw_material;
     applyStock();
   }
 
