@@ -42,7 +42,7 @@ export function createViewModeControls({
   );
   orthographicCamera.position.set(orthoD, orthoD, orthoD);
   orthographicCamera.lookAt(target);
-  orthographicCamera.zoom = 1;
+  orthographicCamera.zoom = 1.5;
 
   const controlsPerspective = new OrbitControls(
     perspectiveCamera,
@@ -92,7 +92,7 @@ export function createViewModeControls({
     } else {
       orthographicCamera.position.set(orthoD, orthoD, orthoD);
       orthographicCamera.quaternion.identity();
-      orthographicCamera.zoom = 1;
+      orthographicCamera.zoom = 1.5;
       orthographicCamera.lookAt(target);
       orthographicCamera.updateProjectionMatrix();
       controlsOrthographic.target.copy(target);
@@ -230,6 +230,9 @@ export function createViewModeControls({
         cam.position.copy(center).addScaledVector(viewDir, distance);
         cam.updateProjectionMatrix();
       }
+
+      orthographicCamera.zoom = 1.5;
+      orthographicCamera.updateProjectionMatrix();
 
       target.copy(center);
       controlsPerspective.target.copy(center);

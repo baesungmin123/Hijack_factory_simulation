@@ -18,27 +18,37 @@ export async function addTrucks(scene, floorBox) {
   const minX = floorBox.min.x;
   const maxX = floorBox.max.x;
 
-  // 도로 1: +X 방향
-  const truck1 = template.clone(true);
-  truck1.scale.setScalar(TRUCK_SCALE);
-  truck1.position.set(minX, TRUCK_Y, ROAD1_Z);
-  truck1.rotation.y = 0;
-  scene.add(truck1);
+  const activeTrucks = []; // { mesh, dir, endX }
 
-  // 도로 2: -X 방향 (반대편에서 출발)
-  const truck2 = template.clone(true);
-  truck2.scale.setScalar(TRUCK_SCALE);
-  truck2.position.set(maxX, TRUCK_Y, ROAD2_Z);
-  truck2.rotation.y = Math.PI;
-  scene.add(truck2);
+  function trigger() {
+    const truck1 = template.clone(true);
+    truck1.scale.setScalar(TRUCK_SCALE);
+    truck1.position.set(minX, TRUCK_Y, ROAD1_Z);
+    truck1.rotation.y = 0;
+    scene.add(truck1);
+    activeTrucks.push({ mesh: truck1, dir: 1, endX: maxX });
 
-  function update(delta) {
-    truck1.position.x += TRUCK_SPEED * delta;
-    if (truck1.position.x > maxX) truck1.position.x = minX;
-
-    truck2.position.x -= TRUCK_SPEED * delta;
-    if (truck2.position.x < minX) truck2.position.x = maxX;
+    const truck2 = template.clone(true);
+    truck2.scale.setScalar(TRUCK_SCALE);
+    truck2.position.set(maxX, TRUCK_Y, ROAD2_Z);
+    truck2.rotation.y = Math.PI;
+    scene.add(truck2);
+    activeTrucks.push({ mesh: truck2, dir: -1, endX: minX });
   }
 
-  return { update };
+  function update(delta) {
+    for (let i = activeTrucks.length - 1; i >= 0; i--) {
+      const t = activeTrucks[i];
+      t.mesh.position.x += TRUCK_SPEED * delta * t.dir;
+      const done = t.dir > 0
+        ? t.mesh.position.x >= t.endX
+        : t.mesh.position.x <= t.endX;
+      if (done) {
+        scene.remove(t.mesh);
+        activeTrucks.splice(i, 1);
+      }
+    }
+  }
+
+  return { update, trigger };
 }

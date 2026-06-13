@@ -3,6 +3,18 @@ import { createViewModeControls } from "../../components/Controls.js";
 import { setSceneReady } from "../../components/Transition.js";
 import { addTransferFloor } from "./floor.js";
 import { addTrucks } from "./truck.js";
+import { getFactoryWebSocket } from "../../websocket.js";
+
+let _modulePendingTriggers = 0;
+let _activeTrucksLayer = null;
+
+getFactoryWebSocket().on("transfer_trigger", () => {
+  if (_activeTrucksLayer) {
+    _activeTrucksLayer.trigger();
+  } else {
+    _modulePendingTriggers++;
+  }
+});
 
 /**
  * 이송라인(transfer) 화면 초기화
@@ -86,6 +98,11 @@ export function initTransferApp({ scene, renderer, canvas }) {
       })
       .then((trucks) => {
         trucksLayer = trucks;
+        _activeTrucksLayer = trucks;
+        while (_modulePendingTriggers > 0) {
+          trucksLayer.trigger();
+          _modulePendingTriggers--;
+        }
       })
       .catch((err) => {
         console.error("이송라인 씬 로드 실패:", err);
@@ -127,6 +144,7 @@ export function initTransferApp({ scene, renderer, canvas }) {
       if (rafId) cancelAnimationFrame(rafId);
       window.removeEventListener("resize", onResize);
       window.removeEventListener("app:viewmode-change", onSidebarViewModeChange);
+      _activeTrucksLayer = null;
       for (const obj of splitHelpers) {
         scene.remove(obj);
       }
